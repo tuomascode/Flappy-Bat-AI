@@ -17,3 +17,8 @@ About the project
 This project was created as a way for me to learn how to build a neural network from scratch and from first principles. The AI uses a table to represent the network and is able to evolve new hidden nodes and connections as it plays the game.
 
 The goal of the game is to navigate the bat through the obstacles and reach the highest score possible. The AI will learn and improve as it plays the game.
+
+
+
+https://user-images.githubusercontent.com/115335825/210546264-6bf31d8a-3211-4d06-8393-0c3fba7fc61d.mp4
+
