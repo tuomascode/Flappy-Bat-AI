@@ -1,7 +1,7 @@
 # Flappy-Bat-AI
 Flappy Bat AI
 
-A Python pygame version of the popular Flappy Bird game, but with a twist - an AI controls the acceleration of the bat. This provides a challenge for the AI, which uses a neural network with the ability to evolve new hidden nodes and connections to learn how to play the game.
+A Python pygame version of the popular Flappy Bird game, but with a twist - an AI controls the acceleration of the bat, instead of 'jumping'. This provides a challenge for the AI, which uses a neural network with the ability to evolve new hidden nodes and connections to learn how to play the game.
 
 Dependencies
 
@@ -9,8 +9,7 @@ Dependencies
 
 Running the program
 
-    Install Pygame
-    Run the game.py file
+Download files, install pygame and run the game.py file. Note that the program does not visualize the progress before a minimum viable candidate has been found, in order to save CPU time. You can control the tick rate with the x and c keys.
 
 About the project
 
