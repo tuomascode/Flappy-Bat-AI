@@ -676,9 +676,15 @@ class Evoluutio:
         r.shuffle(uusilista)
         return uusilista[:maara]
 
-    def evoluutio_strategia_2dim(self,verkko,kompleksisuus,mutaatiorate,maara):
+    def evoluutio_strategia_2dim(self,verkko,kompleksisuus=1,mutaatiorate=1,maara=1):
         #Tämä strategia säilyttää solmujen ja kytkösten suhteen
-        #Strategia, joka ei säilytä on kolme-ulotteinen
+        #Strategia, joka ei säilytä on kolmiulotteinen
+
+        """
+        Complexity values should be beween 0 and 5
+        
+        """
+
         if kompleksisuus==0:
             lista=Hermoverkko.palauta_mutaatio(verkko,maara,mutaatiorate)
             return lista
