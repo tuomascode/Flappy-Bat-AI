@@ -1,8 +1,6 @@
 import pygame
 from random import randint
-import verkosto as v
-from time import time
-import NEMT as et #tykkään lyhenteestä et => evolving topology
+import NEMT as et
 
 class tornit:
     def __init__(self,x,y,rajoitin):
