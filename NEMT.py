@@ -3,33 +3,29 @@ import random as r
 from math import tanh
 import time
 class Hermosolu():
-    def __init__(self,indeksi,paino):
-        self.indeksi=indeksi
-        self.takanaapurit=[]
-        self.kertoimet=[]
-        self.paino=paino
-    def lisaa_naapurit(self,naapuri,kerroin):
-        # print(f"lisattiin kytkös joka saapuu soluun numero {self.indeksi} solusta numero {naapuri.indeksi}")
-        self.kertoimet.append(kerroin)
-        self.takanaapurit.append(naapuri)
-    def laske_tulos(self):
-        summa=self.paino
-        if len(self.takanaapurit)==0:
-            return summa
+    def __init__(self,index,weight):
+        self.index=index
+        self.back_neighbours=[]
+        self.factors=[]
+        self.weight=weight
+    def append_neighbour(self,naapuri,kerroin):
+        # print(f"lisattiin kytkös joka saapuu soluun numero {self.index} solusta numero {naapuri.index}")
+        self.factors.append(kerroin)
+        self.back_neighbours.append(naapuri)
+    def solve_network_output(self):
+        sum=self.weight
+        if len(self.back_neighbours)==0:
+            return sum
         else:
-            for i in range(len(self.takanaapurit)):
-                luku=self.takanaapurit[i].laske_tulos()
+            for i in range(len(self.back_neighbours)):
+                luku=self.back_neighbours[i].solve_network_output()
                 try:
-                    summa+=(luku*self.kertoimet[i])
+                    sum+=(luku*self.factors[i])
                 except:
        
                     raise ValueError
-            return tanh(summa)
-    def __str__(self):
-        if self.paino==None:
-            return f"Olen alkutason hermosolu jonka indeksi on {self.indeksi}"
-        else:
-            return f"Olen hermosolu jonka indeksi on {self.indeksi} ja paino on {self.paino}"
+            return tanh(sum)
+
 class Hermoverkko:
     def __init__(self,aloitussolmut,lopetussolmut,taulukko):
         if len(taulukko)==0:
@@ -71,28 +67,28 @@ class Hermoverkko:
         for i in range(len(self.taulukko)-1,-1,-1):
             for j in range(i-1,-1,-1):
                 if self.taulukko[j][i]!=None:
-                    self.solut[i].lisaa_naapurit(self.solut[j],self.taulukko[j][i])
+                    self.solut[i].append_neighbour(self.solut[j],self.taulukko[j][i])
     def laske_kompleksisuus(self):
-        summa=0
-        summa+=self.solumaara
+        sum=0
+        sum+=self.solumaara
         for i in range(len(self.taulukko)-1):
             for j in range(i+1,len(self.taulukko)):
                 if self.taulukko[i][j]!=None:
-                    summa+=1
-        return summa
+                    sum+=1
+        return sum
     def laske_mahdolliset_yhteydet(self):
-        summa=0
+        sum=0
         for i in range(len(self.taulukko)-1):
             for j in range(i+1,len(self.taulukko)):
                 if self.taulukko[i][j]==None:
-                    summa+=1
-        return summa
+                    sum+=1
+        return sum
     def ratkaise(self,input):
         ratkaisut=[]
-        for indeksi in self.alut:
-            self.solut[indeksi].paino=input[indeksi]
+        for index in self.alut:
+            self.solut[index].weight=input[index]
         for i in self.loput:
-            ratkaisut.append(self.solut[i].laske_tulos())
+            ratkaisut.append(self.solut[i].solve_network_output())
         return ratkaisut
     def tarkista_solmun_poisto(self):
         if len(self.tasot)!=0:
@@ -154,19 +150,19 @@ class Hermoverkko:
             lukema=self.alut[-1]+1
             self.solumaara+=1
             uusitaulu=[[None for j in range(self.solumaara)] for i in range(self.solumaara)]
-            for indeksi, rivi in enumerate((self.taulukko)):
-                for jindeksi, luku in enumerate(rivi):
+            for index, rivi in enumerate((self.taulukko)):
+                for jindex, luku in enumerate(rivi):
                     if luku!=None:
-                        if jindeksi>=lukema:
-                            if indeksi>=lukema:
-                                uusitaulu[indeksi+1][jindeksi+1]=self.taulukko[indeksi][jindeksi]
+                        if jindex>=lukema:
+                            if index>=lukema:
+                                uusitaulu[index+1][jindex+1]=self.taulukko[index][jindex]
                             else:
-                                uusitaulu[indeksi][jindeksi+1]=self.taulukko[indeksi][jindeksi]
+                                uusitaulu[index][jindex+1]=self.taulukko[index][jindex]
             self.taulukko=uusitaulu
             for i in range(len(self.loput)):
                 self.loput[i]+=1
             solmu=r.choice(self.loput)
-            toinensolmu=r.choice(self.solut[solmu-1].takanaapurit).indeksi
+            toinensolmu=r.choice(self.solut[solmu-1].back_neighbours).index
             self.taulukko[lukema][solmu]=self.taulukko[toinensolmu][solmu]
             self.taulukko[toinensolmu][lukema]=1
             self.taulukko[toinensolmu][solmu]=None
@@ -177,15 +173,15 @@ class Hermoverkko:
             lukema=r.randint(self.alut[-1],self.tasot[-1])
             self.solumaara+=1
             uusitaulu=[[None for j in range(self.solumaara)] for i in range(self.solumaara)]
-            for indeksi, rivi in enumerate((self.taulukko)):
-                for jindeksi, luku in enumerate(rivi):
+            for index, rivi in enumerate((self.taulukko)):
+                for jindex, luku in enumerate(rivi):
                     if luku!=None:
-                        if indeksi<=lukema and jindeksi<=lukema:
-                            uusitaulu[indeksi][jindeksi]=self.taulukko[indeksi][jindeksi]
-                        elif lukema<jindeksi and indeksi<=lukema:
-                            uusitaulu[indeksi][jindeksi+1]=self.taulukko[indeksi][jindeksi]
-                        elif lukema<jindeksi and indeksi>lukema:
-                            uusitaulu[indeksi+1][jindeksi+1]=self.taulukko[indeksi][jindeksi]
+                        if index<=lukema and jindex<=lukema:
+                            uusitaulu[index][jindex]=self.taulukko[index][jindex]
+                        elif lukema<jindex and index<=lukema:
+                            uusitaulu[index][jindex+1]=self.taulukko[index][jindex]
+                        elif lukema<jindex and index>lukema:
+                            uusitaulu[index+1][jindex+1]=self.taulukko[index][jindex]
             self.tasot.append(self.tasot[-1]+1)
             for i in range(len(self.loput)):
                 self.loput[i]+=1
@@ -219,7 +215,7 @@ class Hermoverkko:
             heitto=r.uniform(0.8,1)
         ala=0-heitto
         yla=0+heitto
-        summa=0
+        sum=0
         if len(self.tasot)==0:
             return
         for j in range(0,len(self.taulukko)-1):
@@ -227,11 +223,11 @@ class Hermoverkko:
                 if j>=i:
                     continue
                 if self.taulukko[j][i]==None:
-                    summa+=1
-        if summa==0:
+                    sum+=1
+        if sum==0:
             return
-        kytkos=r.randint(1,summa)
-        indeksi=1
+        kytkos=r.randint(1,sum)
+        index=1
         uusitaulu=[[None for j in range(len(self.taulukko))] for i in range(len(self.taulukko))]
         for i in range(len(self.taulukko)):
             for j in range(len(self.taulukko)):
@@ -242,13 +238,13 @@ class Hermoverkko:
                 if j>=i:
                     continue
                 if self.taulukko[j][i]==None:
-                    if indeksi==kytkos:
+                    if index==kytkos:
                         uusitaulu[j][i]=r.uniform(ala,yla)
                         self.taulukko=uusitaulu
                         self.luo_hermoverkko()
                         return
                     else:
-                        indeksi+=1
+                        index+=1
         self.luo_hermoverkko()
     def tarkista_yhteys(self):
         if len(self.tasot)==0:
@@ -305,57 +301,57 @@ class Hermoverkko:
         ala=1-heitto
         yla=1+heitto
         uusitaulu=[[None for j in range(len(self.taulukko))] for i in range(len(self.taulukko))]
-        for indeksi,lista in enumerate(self.taulukko):
-            for jindeksi,luku in enumerate(lista):
+        for index,lista in enumerate(self.taulukko):
+            for jindex,luku in enumerate(lista):
                 if luku!=None:
-                    uusitaulu[indeksi][jindeksi]=self.taulukko[indeksi][jindeksi]
+                    uusitaulu[index][jindex]=self.taulukko[index][jindex]
                     if r.choice(lista)==0:
-                        uusitaulu[indeksi][jindeksi]*=-1
+                        uusitaulu[index][jindex]*=-1
                     if r.randint(1,10)<=rate:
-                        uusitaulu[indeksi][jindeksi]*=r.uniform(ala,yla)
+                        uusitaulu[index][jindex]*=r.uniform(ala,yla)
         self.taulukko=uusitaulu
         self.luo_hermoverkko()
     def risteytys(morefit: 'Hermoverkko',lessfit: 'Hermoverkko'):
         erotus=morefit.solumaara-lessfit.solumaara
         if erotus>=0:
             uusitaulu=[[None for j in range(morefit.solumaara)] for i in range(morefit.solumaara)]
-            for indeksi, rivi in enumerate((lessfit.taulukko)):
-                for jindeksi, luku in enumerate(rivi):
+            for index, rivi in enumerate((lessfit.taulukko)):
+                for jindex, luku in enumerate(rivi):
                     if luku!=None:
-                        if jindeksi>morefit.alut[-1]:
-                            if indeksi>morefit.alut[-1]:
-                                uusitaulu[indeksi+erotus][jindeksi+erotus]=lessfit.taulukko[indeksi][jindeksi]
+                        if jindex>morefit.alut[-1]:
+                            if index>morefit.alut[-1]:
+                                uusitaulu[index+erotus][jindex+erotus]=lessfit.taulukko[index][jindex]
                             else:
-                                uusitaulu[indeksi][jindeksi+erotus]=lessfit.taulukko[indeksi][jindeksi]
+                                uusitaulu[index][jindex+erotus]=lessfit.taulukko[index][jindex]
             puoli=len(morefit.taulukko)//+1
-            for indeksi, lista in enumerate(morefit.taulukko):
+            for index, lista in enumerate(morefit.taulukko):
                 for j, luku in enumerate(lista):
-                    if indeksi>puoli or j > puoli:
+                    if index>puoli or j > puoli:
                         continue
                     else:
-                        if uusitaulu[indeksi][j]==None:
-                            if morefit.taulukko[indeksi][j]==None:
+                        if uusitaulu[index][j]==None:
+                            if morefit.taulukko[index][j]==None:
                                 pass
                             else:
-                                uusitaulu[indeksi][j]=morefit.taulukko[indeksi][j]
+                                uusitaulu[index][j]=morefit.taulukko[index][j]
                         else:
-                            if morefit.taulukko[indeksi][j]==None:
+                            if morefit.taulukko[index][j]==None:
                                 pass
                             else:
-                                uusitaulu[indeksi][j]=r.choice([morefit.taulukko[indeksi][j],uusitaulu[indeksi][j]])
+                                uusitaulu[index][j]=r.choice([morefit.taulukko[index][j],uusitaulu[index][j]])
             return Hermoverkko(len(morefit.alut),len(morefit.loput),uusitaulu)
         else:
             uusitaulu=[[None for j in range(lessfit.solumaara)] for i in range(lessfit.solumaara)]
             for i in range(len(uusitaulu)):
                 uusitaulu[i][i]=r.uniform(-2,2)
-            for indeksi, rivi in enumerate((morefit.taulukko)):
-                for jindeksi, luku in enumerate(rivi):
+            for index, rivi in enumerate((morefit.taulukko)):
+                for jindex, luku in enumerate(rivi):
                     if luku!=None:
-                        if jindeksi>lessfit.alut[-1]:
-                            if indeksi>lessfit.alut[-1]:
-                                uusitaulu[indeksi-erotus][jindeksi-erotus]=morefit.taulukko[indeksi][jindeksi]
+                        if jindex>lessfit.alut[-1]:
+                            if index>lessfit.alut[-1]:
+                                uusitaulu[index-erotus][jindex-erotus]=morefit.taulukko[index][jindex]
                             else:
-                                uusitaulu[indeksi][jindeksi-erotus]=morefit.taulukko[indeksi][jindeksi]
+                                uusitaulu[index][jindex-erotus]=morefit.taulukko[index][jindex]
             puoli=len(morefit.taulukko)//2+1
             rajoitin=0
             for i in range(len(uusitaulu)-1):
@@ -365,21 +361,21 @@ class Hermoverkko:
                         uusitaulu[i][j]=lessfit.taulukko[i][j]
                     else:
                         if lessfit.taulukko[i][j]!=None:
-                            uusitaulu[indeksi][j]=r.choice([lessfit.taulukko[indeksi][j],uusitaulu[indeksi][j]])
+                            uusitaulu[index][j]=r.choice([lessfit.taulukko[index][j],uusitaulu[index][j]])
             # laskuri=0
             # while erotus<0:
-            #     indeksi=r.randint(0,len(uusitaulu)-1)
-            #     luku = uusitaulu[indeksi].count(None)
+            #     index=r.randint(0,len(uusitaulu)-1)
+            #     luku = uusitaulu[index].count(None)
             #     laskuri+=1
             #     if laskuri>15:
             #         break
             #     if luku < len(uusitaulu)-2:
             #         while True:
-            #             poisto=r.choice(uusitaulu[indeksi][indeksi+1:])
+            #             poisto=r.choice(uusitaulu[index][index+1:])
             #             if poisto is not None:
-            #                 pindex=uusitaulu[indeksi][indeksi+1:].index(poisto)
-            #                 pindex+=indeksi+1
-            #                 uusitaulu[indeksi][pindex]=None
+            #                 pindex=uusitaulu[index][index+1:].index(poisto)
+            #                 pindex+=index+1
+            #                 uusitaulu[index][pindex]=None
             #                 erotus+=1
             #                 break
             erotus=int(abs(erotus))
@@ -404,22 +400,22 @@ class Hermoverkko:
         #     print(i)
         # print()
         print("Olen hermoverkko, jolla on\n",len(self.alut),"alkusolmua,\n",len(self.tasot),"välisolmua\n",len(self.loput),"loppusolmua")
-        print("suhteellinen painoni on",self.painosumma())
+        print("suhteellinen weightni on",self.weightsum())
         print("Kompleksisuus arvo on",self.laske_kompleksisuus())
         print("Yhteyksiä on yhteensä",self.laske_kompleksisuus()-self.solumaara)
     def printti(self):
         for i in self.taulukko:
             print(i)
         print()
-    def painosumma(self):
-        summa=0
+    def weightsum(self):
+        sum=0
         for i in range(len(self.alut)):
             self.taulukko[i][i]=1
         for i,x in enumerate(self.taulukko):
             for j in range(len(x)):
                 if x[j]!=None:
-                    summa+=x[j]
-        return summa
+                    sum+=x[j]
+        return sum
     def palauta_topologia(verkko,maara):
         lista=[]
         for i in range(maara):
@@ -473,15 +469,15 @@ class Hermoverkko:
         uudet=[]
         for i in range(kerrat):
             mutaatiot=40
-            indeksi=0
+            index=0
             while mutaatiot>1:
-                for i in Hermoverkko.palauta_mutaatio(lista[indeksi],mutaatiot//2):
+                for i in Hermoverkko.palauta_mutaatio(lista[index],mutaatiot//2):
                     uudet.append(i)
                     mutit+=1
                 mutaatiot//=2
-                indeksi+=1
-                if indeksi==len(lista):
-                    indeksi=0
+                index+=1
+                if index==len(lista):
+                    index=0
             pituus=mutaatiot-len(uudet)
             for i in Hermoverkko.palauta_mutaatio(lista[0],pituus):
                 uudet.append(i)
@@ -499,22 +495,22 @@ class Hermoverkko:
                             break
                 if rist==0:
                             break
-            indeksi=0
+            index=0
             for i in range(6,0,-1):
-                tiedot=Hermoverkko.palauta_kytkos(lista[indeksi],i)
+                tiedot=Hermoverkko.palauta_kytkos(lista[index],i)
                 for j in tiedot:
                     uudet.append(j)
-                indeksi+=1
-                if indeksi==len(lista):
-                    indeksi=0
-            indeksi=0
+                index+=1
+                if index==len(lista):
+                    index=0
+            index=0
             for j in range(5):
-                for i in Hermoverkko.palauta_topologia(lista[indeksi],4):
+                for i in Hermoverkko.palauta_topologia(lista[index],4):
                     uudet.append(i)
                     solut+=1
-                indeksi+=1
-                if indeksi==len(lista):
-                    indeksi=0
+                index+=1
+                if index==len(lista):
+                    index=0
         return uudet[:maara]
     def evoluutio_strategia_kaksi(verkko:'Hermoverkko',maara):
         uudet=[]
@@ -599,7 +595,7 @@ class Hermoverkko:
             tiedosto.write(str(len(self.loput)))
     def lue_ja_palauta(tiedostonimi):
         lista=[]
-        indeksi=0
+        index=0
         with open(tiedostonimi) as tiedosto:
             for i in tiedosto:
                 lista.append([])
@@ -607,11 +603,11 @@ class Hermoverkko:
                 for k in i:
                     k=k.replace("\n","")
                     if k=="None":
-                        lista[indeksi].append(None)
+                        lista[index].append(None)
                     else:
-                        lista[indeksi].append(float(k))
+                        lista[index].append(float(k))
                     
-                indeksi+=1
+                index+=1
         aloitussolmut=int(lista[-2][0])
         lopetussolmut=int(lista[-1][0])
         return Hermoverkko(aloitussolmut,lopetussolmut,lista[:-2])

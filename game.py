@@ -2,69 +2,70 @@ import pygame
 from random import randint
 import NEMT as et
 
-class tornit:
-    def __init__(self,x,y,rajoitin):
-        self.reika=325-rajoitin//25
-        if self.reika<135:
-            self.reika=135
-        # print(self.reika)
-        leveys=50
-        ala=30
-        self.alaraja=randint(self.reika+ala,y-ala)
-        self.vari=107, 81, 79
-        self.positio=(x+5, self.alaraja)        #Ala palkin koko ja sijainti
-        self.koko=leveys,y-self.alaraja+5
-        self.kokoy=leveys, self.alaraja-self.reika+5   #yläpalkin poskoko
-        self.positioy=self.positio[0],-10
-        self.rpositio=self.positio[0]-5,self.positio[1]-5   
-        self.rkoko=self.koko[0]+10,self.koko[1]+10
+class Towers:
+    def __init__(self,x,y,reducer):
+        #Reducer will grow as the game goes on to make the gaps between towers smaller
+        self.hole_between_towers=325-reducer//25
+        if self.hole_between_towers<135:
+            self.hole_between_towers=135
 
-        self.rkokoy=self.kokoy[0]+10,self.kokoy[1]+10
-        self.rpositioy=self.positioy[0]-5,self.positioy[1]-5
-  
-
-
-    def hae_kokoposyla(self):
-        return self.positioy,self.kokoy
-    def hae_rkokoposyla(self):
-        return self.rpositioy,self.rkokoy
-    def hae_rkokoposala(self):
-        return self.rpositio,self.rkoko
-    def hae_kokoposala(self):
-        return self.positio,self.koko
-    def hae_vari(self):
-        return self.vari
-    def liikuta(self):
-        luku=3
-        self.rpositio=self.rpositio[0]-luku,self.rpositio[1]
-        self.rpositioy=self.rpositioy[0]-luku,self.rpositioy[1]
-        self.positio=self.positio[0]-luku,self.positio[1]
-        self.positioy=self.positioy[0]-luku,self.positioy[1]
-    def liikuta_taakse(self):
-        luku=-200
-        self.rpositio=self.rpositio[0]-luku,self.rpositio[1]
-        self.rpositioy=self.rpositioy[0]-luku,self.rpositioy[1]
-        self.positio=self.positio[0]-luku,self.positio[1]
-        self.positioy=self.positioy[0]-luku,self.positioy[1]
-    def liikuta_puolet(self,luku):
-        luku+=50
-        luku/=3
-        self.rpositio=self.rpositio[0]-luku,self.rpositio[1]
-        self.rpositioy=self.rpositioy[0]-luku,self.rpositioy[1]
-        self.positio=self.positio[0]-luku,self.positio[1]
-        self.positioy=self.positioy[0]-luku,self.positioy[1]
-    def sijainti(self):
-
-        return self.positio[0]<-50
-def tormays(torni,y,x,leveys,korkeus):
-
-    if torni.positio[0]<x+leveys:
-
-        if torni.positio[0]+torni.koko[0] > x:
             
-            if torni.positioy[1]+torni.kokoy[1] > y:
+        width=50
+        boundary_from_edge=30
+        self.lower_boundary=randint(self.hole_between_towers+boundary_from_edge,y-boundary_from_edge)
+        self.color=107, 81, 79
+        self.lower_position=(x+5, self.lower_boundary) 
+
+        self.size=width,y-self.lower_boundary+5
+        self.size_y=width, self.lower_boundary-self.hole_between_towers+5 
+        self.position_upper=self.lower_position[0],-10
+        self.border_position_lower=self.lower_position[0]-5,self.lower_position[1]-5   
+        self.rsize=self.size[0]+10,self.size[1]+10
+
+        self.rsize_y=self.size_y[0]+10,self.size_y[1]+10
+        self.border_position_upper=self.position_upper[0]-5,self.position_upper[1]-5
+
+    def get_upper_sizepos(self):
+        return self.position_upper,self.size_y
+    def get_upper_boarder_sizepos(self):
+        return self.border_position_upper,self.rsize_y
+    def get_lower_boarder_sizepos(self):
+        return self.lower_position,self.rsize
+    def get_lower_sizepos(self):
+        return self.lower_position,self.size
+    def get_color(self):
+        return self.color
+    def move(self):
+        move_value=3
+        self.border_position_lower=self.border_position_lower[0]-move_value,self.border_position_lower[1]
+        self.border_position_upper=self.border_position_upper[0]-move_value,self.border_position_upper[1]
+        self.lower_position=self.lower_position[0]-move_value,self.lower_position[1]
+        self.position_upper=self.position_upper[0]-move_value,self.position_upper[1]
+    def move_backwards(self):
+        move_value=-200
+        self.border_position_lower=self.border_position_lower[0]-move_value,self.border_position_lower[1]
+        self.border_position_upper=self.border_position_upper[0]-move_value,self.border_position_upper[1]
+        self.lower_position=self.lower_position[0]-move_value,self.lower_position[1]
+        self.position_upper=self.position_upper[0]-move_value,self.position_upper[1]
+    def move_half(self,move_value):
+        move_value+=50
+        move_value/=3
+        self.border_position_lower=self.border_position_lower[0]-move_value,self.border_position_lower[1]
+        self.border_position_upper=self.border_position_upper[0]-move_value,self.border_position_upper[1]
+        self.lower_position=self.lower_position[0]-move_value,self.lower_position[1]
+        self.position_upper=self.position_upper[0]-move_value,self.position_upper[1]
+    def location(self):
+        return self.lower_position[0]<-50
+
+def check_impact(tower,y,x,leveys,korkeus):
+
+    if tower.lower_position[0]<x+leveys:
+
+        if tower.lower_position[0]+tower.size[0] > x:
+            
+            if tower.position_upper[1]+tower.size_y[1] > y:
                 return True
-            if torni.positio[1] < y+korkeus:
+            if tower.lower_position[1] < y+korkeus:
                 return True
 
 class bat:
@@ -84,24 +85,23 @@ class bat:
         self.kiihtyvyys=0
         self.luku=0
     
-    def siirra(self,torni,koko):
-        yksi=torni.alaraja-self.height
-        suhttorninalaraja=(torni.alaraja-self.height)/koko*2-1
-        kaksi=torni.alaraja-torni.reika
-        suhttorninylaraja=kaksi/koko*2-1
-        suhtbaty=self.y/koko*2-1
-        luku=self.verkko.ratkaise([suhtbaty,suhttorninalaraja,suhttorninylaraja,self.nopeus,self.kiihtyvyys*10])
+    def siirra(self,tower,size):
+        suhttowernalaraja=(tower.lower_boundary-self.height)/size*2-1
+        kaksi=tower.lower_boundary-tower.hole_between_towers
+        suhttowern_upperraja=kaksi/size*2-1
+        suhtbaty=self.y/size*2-1
+        luku=self.verkko.ratkaise([suhtbaty,suhttowernalaraja,suhttowern_upperraja,self.nopeus,self.kiihtyvyys*10])
         self.kiihtyvyys+=luku[0]*0.025
         self.nopeus+=self.kiihtyvyys
         self.y+=self.nopeus
-    def tarkista(self,torni,korkeus):
+    def tarkista(self,tower,korkeus):
         if self.y>korkeus or self.y<0:
             return True
-        if torni.positio[0]<self.x+self.leveys:
-            if torni.positio[0]+torni.koko[0] > self.x:
-                if torni.positioy[1]+torni.kokoy[1] > self.y:
+        if tower.lower_position[0]<self.x+self.leveys:
+            if tower.lower_position[0]+tower.size[0] > self.x:
+                if tower.position_upper[1]+tower.size_y[1] > self.y:
                     return True
-                if torni.positio[1] < self.y+self.height:
+                if tower.lower_position[1] < self.y+self.height:
                     return True
         return False
 
@@ -109,31 +109,28 @@ class bat:
         return self.y-alaraja
 
 
-def aja(lepakot,parastulos,sukupolvi):
-    kokox=1000 
-    kokoy=800
-    aikavali=5000
-    rajoitin=0
+def run(lepakot,parastulos,sukupolvi):
+    size_x=1000 
+    size_y=800
+    tickrate=5000
+    reducer=0
     pygame.init() 
-    naytto = pygame.display.set_mode((kokox, kokoy))
+    naytto = pygame.display.set_mode((size_x, size_y))
     parastulos="%.2f" % parastulos
-    y = kokoy//2
-    kiihtyvyys=0.25
-    nopeus=0
     kello = pygame.time.Clock()
-    torneja=[tornit(kokox,kokoy,rajoitin) for i in range(3)]
+    torneja=[Towers(size_x,size_y,reducer) for i in range(3)]
     for i in range(len(torneja)):
         for j in range(i):
-            torneja[i].liikuta_puolet(kokox)
+            torneja[i].move_half(size_x)
     for i in torneja:
-        i.liikuta_taakse()
+        i.move_backwards()
     torneja=torneja[::-1]
 
     poistetut=[]
     score=0
 
     while True:
-        rajoitin+=1
+        reducer+=1
         kuolleet=[]
         poisto=0
         if len(lepakot)==0:
@@ -141,9 +138,9 @@ def aja(lepakot,parastulos,sukupolvi):
         for tapahtuma in pygame.event.get():
             if tapahtuma.type==pygame.KEYDOWN:
                 if tapahtuma.key == pygame.K_x:
-                    aikavali=60
+                    tickrate=60
                 if tapahtuma.key == pygame.K_c:
-                    aikavali+=500
+                    tickrate+=500
                 if tapahtuma.key ==pygame.K_k:
                     kuolleet.append(lepakot[0])
                 
@@ -152,14 +149,14 @@ def aja(lepakot,parastulos,sukupolvi):
                 exit()
         naytto.fill((100,100,100))
         for i in torneja:
-            pygame.draw.rect(naytto,(0,0,0),i.hae_rkokoposyla(), border_radius=10)
-            pygame.draw.rect(naytto,(0,0,0),i.hae_rkokoposala(), border_radius=10)
-            pygame.draw.rect(naytto,i.hae_vari(),i.hae_kokoposala(), border_radius=10)
-            pygame.draw.rect(naytto,i.hae_vari(),i.hae_kokoposyla(), border_radius=10)
-            i.liikuta()
-            if i.sijainti():
+            pygame.draw.rect(naytto,(0,0,0),i.get_upper_boarder_sizepos(), border_radius=10)
+            pygame.draw.rect(naytto,(0,0,0),i.get_lower_boarder_sizepos(), border_radius=10)
+            pygame.draw.rect(naytto,i.get_color(),i.get_lower_sizepos(), border_radius=10)
+            pygame.draw.rect(naytto,i.get_color(),i.get_upper_sizepos(), border_radius=10)
+            i.move()
+            if i.location():
                 poisto=i
-                torneja.append(tornit(kokox,kokoy,rajoitin))
+                torneja.append(Towers(size_x,size_y,reducer))
           
         if poisto!=0:
             torneja.remove(poisto)
@@ -168,30 +165,30 @@ def aja(lepakot,parastulos,sukupolvi):
 
         for i in lepakot:
             naytto.blit(i.bat1,(i.x,i.y))
-            i.siirra(torneja[0],kokoy)
-            if i.tarkista(torneja[0],kokoy):
+            i.siirra(torneja[0],size_y)
+            if i.tarkista(torneja[0],size_y):
                 if i not in kuolleet:
                     kuolleet.append(i)
         # naytto.blit(i.bat1,(i.x,i.y))
 
         for i in kuolleet:
             lepakot.remove(i)
-            virhe=abs((torneja[0].alaraja*2-torneja[0].reika)/2-i.y)/kokoy
+            virhe=abs((torneja[0].lower_boundary*2-torneja[0].hole_between_towers)/2-i.y)/size_y
             poistetut.append((i,score-virhe))
 
        
         del kuolleet
         fontti = pygame.font.SysFont("Times New Roman", 24)
-        kirjoitus=str(len(lepakot))+" lepakkoa elossa"
-        kirjoitus2=str(score)+" tulos ja parastulos on "+str(parastulos)+ " ja sukupolvi on: "+str(sukupolvi) +" ja reika on "+str(torneja[0].reika)
+        kirjoitus=str(len(lepakot))+" Bats alive. Current Score: "+str(score) + " Generation: "+str(sukupolvi)
+        kirjoitus2="Best_score: "+str(parastulos) +" Hole_between_towers: "+str(torneja[0].hole_between_towers)
 
         teksti = fontti.render(kirjoitus, True, (255, 255, 255))
         teksti2 = fontti.render(kirjoitus2, True, (255, 255, 255))
 
         naytto.blit(teksti, (25, 25))
-        naytto.blit(teksti2, (250, 25))
+        naytto.blit(teksti2, (25, 50))
         pygame.display.flip()
-        kello.tick(aikavali)
+        kello.tick(tickrate)
         # score+=1
          
 
@@ -206,7 +203,7 @@ def main():
     resetti=10
     while True:
         laskuri+=1
-        tulokset=aja(lista,parastulos,laskuri)
+        tulokset=run(lista,parastulos,laskuri)
         tulokset.sort(reverse=True,key = lambda x:x[1])
         if tulokset[0][1]<8:
             lista=[]
@@ -255,7 +252,7 @@ def main():
                 lista.append(bat(et.Hermoverkko(5,1,[])))
             if resetti==0:
                 print()
-                print("RESETOIDAAN PERKELE")
+                print("Resetting the search")
                 print()
                 paraslepakko=False
                 parastulos=0
