@@ -31,8 +31,6 @@ class Towers:
 
         self.upper_boarder_position=self.position_upper[0]-5,self.position_upper[1]-5
         self.upper_boarder_size=self.upper_size[0]+10,self.upper_size[1]+10
-
-
     #Getter functions to get values required by drawing and impact_checking functions
     def get_upper_sizepos(self):
         return self.position_upper,self.upper_size
@@ -46,7 +44,6 @@ class Towers:
         return self.color
     def check_if_tower_passed(self):
         return self.position_lower[0]<-50
-
     #Move functions to move the towers around.
     def move(self):
         move_value=3
@@ -67,9 +64,6 @@ class Towers:
         self.upper_boarder_position=self.upper_boarder_position[0]-move_value,self.upper_boarder_position[1]
         self.position_lower=self.position_lower[0]-move_value,self.position_lower[1]
         self.position_upper=self.position_upper[0]-move_value,self.position_upper[1]
-
-
-
 class Bat:
     def __init__(self,network):
         #Randomize the images so the bats look different
@@ -79,6 +73,8 @@ class Bat:
         else: 
             self.bat1=pygame.image.load("flap2.png")
             self.bat2=pygame.image.load("flap1.png")
+
+        #Define values such as size, position, speed, acceleration and the network
         self.height=self.bat1.get_height()-10
         self.width=self.bat1.get_width()
         self.speed=0
@@ -107,8 +103,10 @@ class Bat:
     def check_impact(self,tower,height):
         #Check if the bat collides with a tower
 
+        #Check floor and ceiling
         if self.y>height or self.y<0:
             return True
+        #Check contact with towers
         if tower.position_lower[0]<self.x+self.width:
             if tower.position_lower[0]+tower.lower_size[0] > self.x:
                 if tower.position_upper[1]+tower.upper_size[1] > self.y:
@@ -116,7 +114,7 @@ class Bat:
                 if tower.position_lower[1] < self.y+self.height:
                     return True
         return False
-def run(bats_to_run,best_score,generation):
+def run_with_pygame(bats_to_run,best_score,generation):
     #A pygame function to simulate the competition
     #Basically does the following things
     #  1. Move towers
@@ -124,14 +122,19 @@ def run(bats_to_run,best_score,generation):
     #  3. check for collisions
     #  4. score the bats performance
 
+    #Seed is set to one, because it produces a hard obstacle in the beginning of the course.
+    #Better to find one network who can actually react to the obstacles than get randomly obstacles,
+    #which you can get through just by staying still
+
     seed(1)
-    #reducer variable allows the restriction of the 'window' size. Note if you run the program, the distance between the upper and lower tower gets smaller
+
+    #reducer variable allows the reduction of the gap size between towers, making it progressively harder.
     reducer=0
 
     #Define screen size and tickrate
     size_x=1000 
     upper_size=800
-    tickrate=5000
+    tickrate=0
     
     #init and set screen and clock
     pygame.init() 
@@ -140,6 +143,7 @@ def run(bats_to_run,best_score,generation):
 
     #Define towers and adjust the positions for the start
     towers=[Towers(size_x,upper_size,reducer) for i in range(3)]
+
     for i in range(len(towers)):
         for j in range(i):
             towers[i].move_half(size_x)
@@ -159,7 +163,7 @@ def run(bats_to_run,best_score,generation):
     while True:
         reducer+=1
         
-        #remover helper list stores dead bats within a to push them to removed bats
+        #remover helper list stores dead bats within to push them to removed bats
         bat_remover_helper_list=[]
         deletion_value=0
         
@@ -170,16 +174,16 @@ def run(bats_to_run,best_score,generation):
         #Check for events
         for event in pygame.event.get():
             if event.type==pygame.KEYDOWN:
-                #Change framerate
+                #Change framerate, x to normalize and c to accelerate
                 if event.key == pygame.K_x:
                     tickrate=60
                 if event.key == pygame.K_c:
-                    tickrate+=500
-
+                    tickrate=0
+            #Quit button
             if event.type == pygame.QUIT:
                 exit()
         
-        #Time for pygame stuff. Fill screen and draw towers. Check if tower has passed to remove it and a new one
+        #Time for pygame stuff. Fill screen and draw towers. Check if tower has passed to remove it and add a new one
         screen.fill((100,100,100))
         for i in towers:
             pygame.draw.rect(screen,(0,0,0),i.get_upper_boarder_sizepos(), border_radius=10)
@@ -199,10 +203,13 @@ def run(bats_to_run,best_score,generation):
 
         #Iterate over the bats
         for i in bats_to_run:
+
             #Draw the bat
             screen.blit(i.bat1,(i.x,i.y))
+
             #Move the bat using fancy neural network
             i.move_bat(towers[0],upper_size)
+
             #Check if bat has hit a tower, floor or ceiling. If so, add to helper list
             if i.check_impact(towers[0],upper_size):
                 if i not in bat_remover_helper_list:
@@ -229,10 +236,89 @@ def run(bats_to_run,best_score,generation):
         screen.blit(text2, (25, 50))
         pygame.display.flip()
         clock.tick(tickrate)
-         
+def run_without_pygame(bats_to_run,best_score,generation):
+    #A copy of the other run function without displaying the progress.
 
+    seed(1)
+    #reducer variable allows the restriction of the 'window' size. Note if you run the program, the distance between the upper and lower tower gets smaller
+    reducer=0
+
+    #Define screen size and tickrate
+    size_x=1000 
+    upper_size=800
+    pygame.init() 
+    screen = pygame.display.set_mode((size_x, upper_size))
+    font = pygame.font.SysFont("Times New Roman", 24)
+    writing_one="Finding minimun viable network. Generation:"+str(generation)+". This can take up to 60-100 generations"
+    text = font.render(writing_one, True, (255, 255, 255))
+    screen.fill((0,0,0))
+    screen.blit(text, (25, 25))
+    pygame.display.flip()
+
+    
+
+    #Define towers and adjust the positions for the start
+    towers=[Towers(size_x,upper_size,reducer) for i in range(3)]
+    for i in range(len(towers)):
+        for j in range(i):
+            towers[i].move_half(size_x)
+    for i in towers:
+        i.move_backwards()
+    towers=towers[::-1]
+
+    #removed_bats holds the ones who've died. The list will also hold the relative score of the dead bat
+    removed_bats=[]
+    score=0
+
+
+    #Pygame style while loop
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+        reducer+=1
+        
+        #remover helper list stores dead bats within a to push them to removed bats
+        bat_remover_helper_list=[]
+        deletion_value=0
+        
+        #If all the bats have died, stop simulation by returning the removed_bats
+        if len(bats_to_run)==0:
+            return removed_bats
+
+        #Move towers and check for removals
+        for i in towers:
+            i.move()
+            if i.check_if_tower_passed():
+                deletion_value=i
+                towers.append(Towers(size_x,upper_size,reducer))
+        
+        #remove the passed towers and also increment the score
+        if deletion_value!=0:
+            towers.remove(deletion_value)
+            score+=1
+        del deletion_value  #Not sure if this is needed
+
+        #Iterate over the bats
+        for i in bats_to_run:
+            #Move the bat using fancy neural network
+            i.move_bat(towers[0],upper_size)
+            #Check if bat has hit a tower, floor or ceiling. If so, add to helper list
+            if i.check_impact(towers[0],upper_size):
+                if i not in bat_remover_helper_list:
+                    bat_remover_helper_list.append(i)
+
+        #Remove the failed bats, adjust the score by how much the bat was off from the window and add it to the remove bats list with it's score
+        for i in bat_remover_helper_list:
+            bats_to_run.remove(i)
+            mistake_value=abs((towers[0].lower_boundary*2-towers[0].hole_between_towers)/2-i.y)/upper_size
+            removed_bats.append((i,score-mistake_value))
+
+        #Delete the list to ensure no errors
+        del bat_remover_helper_list
 def main():
     #Begin AI program
+
     #Set values
     best_score=0
     number_of_initial_bats=500
@@ -242,60 +328,74 @@ def main():
     #Initialize the evolution object:
     evolution_object=et.Evoluutio()
 
-    for i in range(number_of_initial_bats):
-        bat_list.append(Bat(et.Hermoverkko(5,1,[])))
+    #Define a boolean for running pygame. This won't be done untill a first viable candidate has been found
+    miminum_viable_network_found=False
+
+    bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
     counter=0
     reset_value=10
     while True:
         counter+=1
-        results_of_simulation=run(bat_list,best_score,counter)
+        #If minimum viable network found, we begin simulating the learning process. No point wasting cpu power on simulating failures
+        if miminum_viable_network_found:
+            results_of_simulation=run_with_pygame(bat_list,best_score,counter)
+        else:
+            results_of_simulation=run_without_pygame(bat_list,best_score,counter)
+
+        #Sort the bats in reverse. Best is first
         results_of_simulation.sort(reverse=True,key = lambda x:x[1])
+
+        #Reset seed so network evolution works. Seed is set to 1 in the actual game to shape the obstacle course.
         seed()
 
+        #If one of the bats get beyond 8 towers, we have found a viable candidate.
         if results_of_simulation[0][1]<8:
-            bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats)]
+            #If not, keep simulating
+            bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
         else:
+            
+            miminum_viable_network_found=True
+
+            #Some boolean checks.
+            #Best_bat_network is false when the first minimal viable candidate has been found.
             if best_bat_network == False:
+                #The best bat is used to produce more networks
                 best_bat_network=results_of_simulation[0][0].network
                 best_score=results_of_simulation[0][1]
+
             elif results_of_simulation[0][1]>best_score:
+                #Stagnation check basically. If new highscore, update the score and best_bat
                 best_bat_network=results_of_simulation[0][0].network
                 best_score=results_of_simulation[0][1]
             else:
+                #If stagnatated, the reset value get decremented
                 reset_value-=1
+            
+            #If the round didn't produce any improvements, then second best bat is the best bat from this round
+            #Basically the first two bats are either best two from this round, or best one from both this round and last round
             if results_of_simulation[0][0].network==best_bat_network:
+                #Or if there was an improvement, then we get the second bat from this round.
                 second_best_bat_network=results_of_simulation[1][0].network
             else: second_best_bat_network=results_of_simulation[0][0].network
             
-          
-   
-        
+
+            #Making new networks with best and second best bat
             evolved_bats=evolution_object.evoluutio_strategia_2dim(best_bat_network,maara=number_of_initial_bats//2)
             evolved_bats+=evolution_object.evoluutio_strategia_2dim(second_best_bat_network,maara=number_of_initial_bats//2)
 
-    
-            bat_list=[]
-            bat_list.append(Bat(best_bat_network))
-            bat_list.append(Bat(second_best_bat_network))
-            bat_list+= [Bat(network) for network in  evolved_bats]
+            #Make new bat objects and give them some networks.
+            bat_list=[Bat(best_bat_network),Bat(second_best_bat_network)]
+            bat_list+=[Bat(network) for network in  evolved_bats]
 
             if reset_value==0:
-                print()
+                #This implicates stagnation. I bet no-one has the patiency to get to this point.
                 print("Stagnation, resetting the search")
-                print()
                 best_bat_network=False
+                miminum_viable_network_found=False
                 best_score=0
-                bat_list=[]
                 reset_value=10
                 counter=0
-                for i in range(number_of_initial_bats):
-                    bat_list.append(Bat(et.Hermoverkko(5,1,[])))
-    
-
-
-
-
-
+                bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
 if __name__=="__main__":
     main()
 
