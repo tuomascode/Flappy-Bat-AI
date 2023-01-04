@@ -16,9 +16,9 @@ class Node():
             return sum
         else:
             for i in range(len(self.back_neighbours)):
-                luku=self.back_neighbours[i].solve_network_output()
+                value=self.back_neighbours[i].solve_network_output()
                 try:
-                    sum+=(luku*self.factors[i])
+                    sum+=(value*self.factors[i])
                 except:
        
                     raise ValueError
@@ -55,21 +55,21 @@ class Network:
             self.primitive=False
             if len(self.levels)==0:
                 self.primitive=True
-            self.ends=[luku for luku in range(len(self.begins)+len(self.levels),self.number_of_nodes)]
+            self.ends=[value for value in range(len(self.begins)+len(self.levels),self.number_of_nodes)]
             self.network_table=table
             self.create_new_network()
     def create_new_network(self):
-        self.solut=[]
+        self.nodes=[]
         for i in self.begins:
-            self.solut.append(Node(i,self.network_table[i][i]))
+            self.nodes.append(Node(i,self.network_table[i][i]))
         for i in self.levels:
-            self.solut.append(Node(i,self.network_table[i][i]))
+            self.nodes.append(Node(i,self.network_table[i][i]))
         for i in self.ends:
-            self.solut.append(Node(i,self.network_table[i][i]))
+            self.nodes.append(Node(i,self.network_table[i][i]))
         for i in range(len(self.network_table)-1,-1,-1):
             for j in range(i-1,-1,-1):
                 if self.network_table[j][i]!=None:
-                    self.solut[i].append_neighbour(self.solut[j],self.network_table[j][i])
+                    self.nodes[i].append_neighbour(self.nodes[j],self.network_table[j][i])
     def calculate_complexicity(self):
         sum=0
         sum+=self.number_of_nodes
@@ -79,45 +79,45 @@ class Network:
                     sum+=1
         return sum
     def return_network_solution(self,input):
-        ratkaisut=[]
+        solutions=[]
         for index in self.begins:
-            self.solut[index].weight=input[index]
+            self.nodes[index].weight=input[index]
         for i in self.ends:
-            ratkaisut.append(self.solut[i].solve_network_output())
-        return ratkaisut
+            solutions.append(self.nodes[i].solve_network_output())
+        return solutions
     def remove_node(self):
-        solmu=r.choice(self.levels)
-        uusitaulu=[[self.network_table[i][j] for j in range(len(self.network_table))]for i in range(len(self.network_table))]
+        node=r.choice(self.levels)
+        new_table=[[self.network_table[i][j] for j in range(len(self.network_table))]for i in range(len(self.network_table))]
         end_nodes=[]
         first_order_nodes=[]
-        for i in range(len(uusitaulu)):
-            for j in range(len(uusitaulu)):
-                if j==solmu:
+        for i in range(len(new_table)):
+            for j in range(len(new_table)):
+                if j==node:
                     if j!=i:
                         if self.network_table[j][i]!=None:
                             first_order_nodes.append(i)
-                if i==solmu:
+                if i==node:
                     if j!=i:
                         if self.network_table[j][i]!=None:
                             end_nodes.append(j)
         for i in end_nodes:
             for j in first_order_nodes:
-                uusitaulu[i][j]=(self.network_table[solmu][j]+self.network_table[i][solmu])/2
-        for i in range(len(uusitaulu)):
-            uusitaulu[solmu][i]=None
-            uusitaulu[i][solmu]=None
-        uusitaulukaksi=[[None for j in range(len(uusitaulu)-1)]for i in range(len(uusitaulu)-1)]
-        for i in range(len(uusitaulukaksi)):
-            for j in range(len(uusitaulukaksi)):
-                if j>=solmu:
-                    if i>=solmu:
-                        uusitaulukaksi[i][j]=uusitaulu[i+1][j+1]
+                new_table[i][j]=(self.network_table[node][j]+self.network_table[i][node])/2
+        for i in range(len(new_table)):
+            new_table[node][i]=None
+            new_table[i][node]=None
+        new_table_two=[[None for j in range(len(new_table)-1)]for i in range(len(new_table)-1)]
+        for i in range(len(new_table_two)):
+            for j in range(len(new_table_two)):
+                if j>=node:
+                    if i>=node:
+                        new_table_two[i][j]=new_table[i+1][j+1]
                     else:
-                        uusitaulukaksi[i][j]=uusitaulu[i][j+1]
+                        new_table_two[i][j]=new_table[i][j+1]
                 else:
-                    if i<solmu:
-                        uusitaulukaksi[i][j]=uusitaulu[i][j]
-        self.network_table=uusitaulukaksi
+                    if i<node:
+                        new_table_two[i][j]=new_table[i][j]
+        self.network_table=new_table_two
         self.levels=self.levels[:-1]
         for i in range(len(self.ends)):
             self.ends[i]-=1
@@ -125,87 +125,87 @@ class Network:
         self.create_new_network()
     def create_new_node(self,mutability=1):
         if mutability==1:
-            heitto=r.uniform(0,0.4)
+            variablity=r.uniform(0,0.4)
         elif mutability==2:
-            heitto=r.uniform(0.4,0.8)
+            variablity=r.uniform(0.4,0.8)
         elif mutability==3:
-            heitto=r.uniform(0.8,1.2)
+            variablity=r.uniform(0.8,1.2)
         elif mutability==4:
-            heitto=r.uniform(1.2,1.6)
+            variablity=r.uniform(1.2,1.6)
         elif mutability==5:
-            heitto=r.uniform(1.6,2)
-        ala=0-heitto
-        yla=0+heitto
+            variablity=r.uniform(1.6,2)
+        lower_bound=0-variablity
+        upper_bound=0+variablity
         if len(self.levels)==0:
             self.primitive=False
-            lukema=self.begins[-1]+1
+            reading_value=self.begins[-1]+1
             self.number_of_nodes+=1
-            uusitaulu=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
-            for index, rivi in enumerate((self.network_table)):
-                for jindex, luku in enumerate(rivi):
-                    if luku!=None:
-                        if jindex>=lukema:
-                            if index>=lukema:
-                                uusitaulu[index+1][jindex+1]=self.network_table[index][jindex]
+            new_table=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
+            for index, line in enumerate((self.network_table)):
+                for jindex, value in enumerate(line):
+                    if value!=None:
+                        if jindex>=reading_value:
+                            if index>=reading_value:
+                                new_table[index+1][jindex+1]=self.network_table[index][jindex]
                             else:
-                                uusitaulu[index][jindex+1]=self.network_table[index][jindex]
-            self.network_table=uusitaulu
+                                new_table[index][jindex+1]=self.network_table[index][jindex]
+            self.network_table=new_table
             for i in range(len(self.ends)):
                 self.ends[i]+=1
-            solmu=r.choice(self.ends)
-            toinensolmu=r.choice(self.solut[solmu-1].back_neighbours).index
-            self.network_table[lukema][solmu]=self.network_table[toinensolmu][solmu]
-            self.network_table[toinensolmu][lukema]=1
-            self.network_table[toinensolmu][solmu]=None
-            self.network_table[lukema][lukema]=r.uniform(ala, yla)
-            self.levels.append(lukema)
+            node=r.choice(self.ends)
+            second_node=r.choice(self.nodes[node-1].back_neighbours).index
+            self.network_table[reading_value][node]=self.network_table[second_node][node]
+            self.network_table[second_node][reading_value]=1
+            self.network_table[second_node][node]=None
+            self.network_table[reading_value][reading_value]=r.uniform(lower_bound, upper_bound)
+            self.levels.append(reading_value)
             self.create_new_network()
         else:
-            lukema=r.randint(self.begins[-1],self.levels[-1])
+            reading_value=r.randint(self.begins[-1],self.levels[-1])
             self.number_of_nodes+=1
-            uusitaulu=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
-            for index, rivi in enumerate((self.network_table)):
-                for jindex, luku in enumerate(rivi):
-                    if luku!=None:
-                        if index<=lukema and jindex<=lukema:
-                            uusitaulu[index][jindex]=self.network_table[index][jindex]
-                        elif lukema<jindex and index<=lukema:
-                            uusitaulu[index][jindex+1]=self.network_table[index][jindex]
-                        elif lukema<jindex and index>lukema:
-                            uusitaulu[index+1][jindex+1]=self.network_table[index][jindex]
+            new_table=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
+            for index, line in enumerate((self.network_table)):
+                for jindex, value in enumerate(line):
+                    if value!=None:
+                        if index<=reading_value and jindex<=reading_value:
+                            new_table[index][jindex]=self.network_table[index][jindex]
+                        elif reading_value<jindex and index<=reading_value:
+                            new_table[index][jindex+1]=self.network_table[index][jindex]
+                        elif reading_value<jindex and index>reading_value:
+                            new_table[index+1][jindex+1]=self.network_table[index][jindex]
             self.levels.append(self.levels[-1]+1)
             for i in range(len(self.ends)):
                 self.ends[i]+=1
-            lukema+=1
-            self.network_table=uusitaulu
+            reading_value+=1
+            self.network_table=new_table
             while True:
-                solmu=r.randint(lukema+1,self.ends[-1])
+                node=r.randint(reading_value+1,self.ends[-1])
                 apunetwork_list=[]
-                for i in range(lukema):
-                    if self.network_table[i][solmu]!=None:
+                for i in range(reading_value):
+                    if self.network_table[i][node]!=None:
                         apunetwork_list.append(i)
                 try:
-                    toinensolmu=r.choice(apunetwork_list)
+                    second_node=r.choice(apunetwork_list)
                     break
                 except: continue
-            self.network_table[lukema][lukema]=r.uniform(ala, yla)
-            self.network_table[lukema][solmu]=self.network_table[toinensolmu][solmu]
-            self.network_table[toinensolmu][lukema]=1
-            self.network_table[toinensolmu][solmu]=None
+            self.network_table[reading_value][reading_value]=r.uniform(lower_bound,upper_bound)
+            self.network_table[reading_value][node]=self.network_table[second_node][node]
+            self.network_table[second_node][reading_value]=1
+            self.network_table[second_node][node]=None
             self.create_new_network()
     def create_new_connection(self,mutability=1):
         if mutability==1:
-            heitto=r.uniform(0,0.2)
+            variablity=r.uniform(0,0.2)
         elif mutability==2:
-            heitto=r.uniform(0.2,0.4)
+            variablity=r.uniform(0.2,0.4)
         elif mutability==3:
-            heitto=r.uniform(0.4,0.6)
+            variablity=r.uniform(0.4,0.6)
         elif mutability==4:
-            heitto=r.uniform(0.6,0.8)
+            variablity=r.uniform(0.6,0.8)
         elif mutability==5:
-            heitto=r.uniform(0.8,1)
-        ala=0-heitto
-        yla=0+heitto
+            variablity=r.uniform(0.8,1)
+        lower_bound=0-variablity
+        upper_bound=0+variablity
         sum=0
         if len(self.levels)==0:
             return
@@ -217,21 +217,21 @@ class Network:
                     sum+=1
         if sum==0:
             return
-        kytkos=r.randint(1,sum)
+        connection=r.randint(1,sum)
         index=1
-        uusitaulu=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
+        new_table=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         for i in range(len(self.network_table)):
             for j in range(len(self.network_table)):
                 if self.network_table[i][j]!=None:
-                    uusitaulu[i][j]=self.network_table[i][j]
-        for j in range(len(uusitaulu)-1):
-            for i in range(self.levels[0],len(uusitaulu)):
+                    new_table[i][j]=self.network_table[i][j]
+        for j in range(len(new_table)-1):
+            for i in range(self.levels[0],len(new_table)):
                 if j>=i:
                     continue
                 if self.network_table[j][i]==None:
-                    if index==kytkos:
-                        uusitaulu[j][i]=r.uniform(ala,yla)
-                        self.network_table=uusitaulu
+                    if index==connection:
+                        new_table[j][i]=r.uniform(lower_bound,upper_bound)
+                        self.network_table=new_table
                         self.create_new_network()
                         return
                     else:
@@ -249,19 +249,19 @@ class Network:
         return False
     def check_for_connection_removal(self):
         for i in range(len(self.network_table)):
-            yhteyksia=0
+            connections=0
             for j in range(i+1,len(self.network_table)):
                 if j<=self.begins[-1]:
                     continue
                 if self.network_table[i][j]!=None:
-                    yhteyksia+=1
-            if yhteyksia>=2:
+                    connections+=1
+            if connections>=2:
                 return True
         return False
     def remove_connection(self):
         if not self.check_for_connection_removal():
             return
-        poistettavat=[]
+        removals=[]
         for i in range(len(self.network_table)-1):
             connections=[]
             for j in range(i+1,len(self.network_table)):
@@ -270,12 +270,12 @@ class Network:
                 if self.network_table[i][j]!=None:
                     connections.append((i,j))
             for i in connections:
-                poistettavat.append(i)
-        poisto=r.choice(poistettavat)
-        uusitaulu=[[self.network_table[i][j] for j in range(len(self.network_table))] for i in range(len(self.network_table))]
+                removals.append(i)
+        poisto=r.choice(removals)
+        new_table=[[self.network_table[i][j] for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         
-        uusitaulu[poisto[0]][poisto[1]]=None
-        self.network_table=uusitaulu
+        new_table[poisto[0]][poisto[1]]=None
+        self.network_table=new_table
         self.create_new_network()
     def mutate_network(self,rate):
         if rate==1:
@@ -288,19 +288,19 @@ class Network:
             network_list=[i for i in range(40)]
         elif rate==5:
             network_list=[i for i in range(20)]
-        heitto=rate*0.03
-        ala=1-heitto
-        yla=1+heitto
-        uusitaulu=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
+        variablity=rate*0.03
+        lower_bound=1-variablity
+        upper_bound=1+variablity
+        new_table=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         for index,network_list in enumerate(self.network_table):
-            for jindex,luku in enumerate(network_list):
-                if luku!=None:
-                    uusitaulu[index][jindex]=self.network_table[index][jindex]
+            for jindex,value in enumerate(network_list):
+                if value!=None:
+                    new_table[index][jindex]=self.network_table[index][jindex]
                     if r.choice(network_list)==0:
-                        uusitaulu[index][jindex]*=-1
+                        new_table[index][jindex]*=-1
                     if r.randint(1,10)<=rate:
-                        uusitaulu[index][jindex]*=r.uniform(ala,yla)
-        self.network_table=uusitaulu
+                        new_table[index][jindex]*=r.uniform(lower_bound,upper_bound)
+        self.network_table=new_table
         self.create_new_network()
     def return_mutated_network(neural_network,maara,rate):
         network_table=[]
