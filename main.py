@@ -9,6 +9,7 @@ import NEMT as et
 # In this project, I built a learning algorithm to play the game. 
 # It's a neural network with a capacity to evolve new hidden nodes and connections. 
 # The network is represented as a table.
+# The network calculates the values recursively. How fun!
 
 # The reasoning behind this project was to learn how to build a neural network from scratch and from first principles.
 # The one difference between the Flappy Bird and Flappy Bat games is that the AI controls the acceleration of the bat, rather than making it jump. 
