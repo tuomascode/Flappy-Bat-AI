@@ -2,6 +2,27 @@ import pygame
 from random import randint,seed
 import NEMT as et
 
+
+#Welcome to my self-written topologically evolving AI algorithm program!
+
+
+# In this project, I built a learning algorithm to play the game. 
+# It's a neural network with a capacity to evolve new hidden nodes and connections. 
+# The network is represented as a table.
+
+# The reasoning behind this project was to learn how to build a neural network from scratch and from first principles.
+# The one difference between the Flappy Bird and Flappy Bat games is that the AI controls the acceleration of the bat, rather than making it jump. 
+# This added an extra challenge for the AI, as jump algorithms are relatively easy to find.
+
+#Features:
+#  1. A flappy bat game that only an AI can play.
+#  2. An AI to play the game.
+
+#Performance:
+#  Depending on your luck you can find a solution to the problem in less than 100 generations
+#  However, the performance varies wildly. Sometimes you don't even get a minimum viable candidate for 100 generations.
+#  Still fun to look at.
+
 class Towers:
     def __init__(self,x,y,reducer):
         #Reducer will grow as the game goes on to make the gaps between towers smaller
@@ -93,7 +114,7 @@ class Bat:
         relative_bat_location=self.y/size*2-1
 
         #Give the network some values to solve. Values are tower positions, bat position, speed and acceleration * 10
-        network_output=self.network.ratkaise([relative_bat_location,lower_relative_tower_position,upper_relative_tower_position,self.speed,self.acceleration*10])
+        network_output=self.network.return_network_solution([relative_bat_location,lower_relative_tower_position,upper_relative_tower_position,self.speed,self.acceleration*10])
         
         #Change acceleration adjusted by a lot
         self.acceleration+=network_output[0]*0.025
@@ -236,7 +257,7 @@ def run_with_pygame(bats_to_run,best_score,generation):
         screen.blit(text2, (25, 50))
         pygame.display.flip()
         clock.tick(tickrate)
-def run_without_pygame(bats_to_run,best_score,generation):
+def run_without_pygame(bats_to_run,generation):
     #A copy of the other run function without displaying the progress.
 
     seed(1)
@@ -248,11 +269,14 @@ def run_without_pygame(bats_to_run,best_score,generation):
     upper_size=800
     pygame.init() 
     screen = pygame.display.set_mode((size_x, upper_size))
-    font = pygame.font.SysFont("Times New Roman", 24)
-    writing_one="Finding minimun viable network. Generation:"+str(generation)+". This can take up to 60-100 generations"
-    text = font.render(writing_one, True, (255, 255, 255))
     screen.fill((0,0,0))
+    font = pygame.font.SysFont("Times New Roman", 24)
+    writing_one="Finding minimun viable network. Generation:"+str(generation)+". This can take up to 40-100 generations"
+    text = font.render(writing_one, True, (255, 255, 255))
     screen.blit(text, (25, 25))
+    writing_one="Each generation has 1000 networks. The min viable network prevents local maximum 'stuckness'"
+    text = font.render(writing_one, True, (255, 255, 255))
+    screen.blit(text, (25, 60))
     pygame.display.flip()
 
     
@@ -326,12 +350,12 @@ def main():
     best_bat_network=False
 
     #Initialize the evolution object:
-    evolution_object=et.Evoluutio()
+    evolution_object=et.Evolution()
 
     #Define a boolean for running pygame. This won't be done untill a first viable candidate has been found
     miminum_viable_network_found=False
 
-    bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
+    bat_list=[Bat(network) for network in evolution_object.create_new_networks(5,1,number_of_networks=number_of_initial_bats*2)]
     counter=0
     reset_value=10
     while True:
@@ -340,7 +364,7 @@ def main():
         if miminum_viable_network_found:
             results_of_simulation=run_with_pygame(bat_list,best_score,counter)
         else:
-            results_of_simulation=run_without_pygame(bat_list,best_score,counter)
+            results_of_simulation=run_without_pygame(bat_list,counter)
 
         #Sort the bats in reverse. Best is first
         results_of_simulation.sort(reverse=True,key = lambda x:x[1])
@@ -351,11 +375,9 @@ def main():
         #If one of the bats get beyond 8 towers, we have found a viable candidate.
         if results_of_simulation[0][1]<8:
             #If not, keep simulating
-            bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
+            bat_list=[Bat(network) for network in evolution_object.create_new_networks(5,1,number_of_networks=number_of_initial_bats*2)]
         else:
-            
             miminum_viable_network_found=True
-
             #Some boolean checks.
             #Best_bat_network is false when the first minimal viable candidate has been found.
             if best_bat_network == False:
@@ -380,8 +402,11 @@ def main():
             
 
             #Making new networks with best and second best bat
-            evolved_bats=evolution_object.evoluutio_strategia_2dim(best_bat_network,maara=number_of_initial_bats//2)
-            evolved_bats+=evolution_object.evoluutio_strategia_2dim(second_best_bat_network,maara=number_of_initial_bats//2)
+            #Some use complexity=0 to reduce the growing size and complexity of the new network
+            evolved_bats=evolution_object.evolve_networks(best_bat_network,amount_of_networks=number_of_initial_bats//4)
+            evolved_bats+=evolution_object.evolve_networks(best_bat_network,complexity=0,amount_of_networks=number_of_initial_bats//4)
+            evolved_bats+=evolution_object.evolve_networks(second_best_bat_network,amount_of_networks=number_of_initial_bats//4)
+            evolved_bats+=evolution_object.evolve_networks(second_best_bat_network,complexity=0,amount_of_networks=number_of_initial_bats//4)
 
             #Make new bat objects and give them some networks.
             bat_list=[Bat(best_bat_network),Bat(second_best_bat_network)]
@@ -389,13 +414,13 @@ def main():
 
             if reset_value==0:
                 #This implicates stagnation. I bet no-one has the patiency to get to this point.
-                print("Stagnation, resetting the search")
+                print("Stagnated, resetting the search")
                 best_bat_network=False
                 miminum_viable_network_found=False
                 best_score=0
                 reset_value=10
                 counter=0
-                bat_list=[Bat(et.Hermoverkko(5,1,[])) for bat in range(number_of_initial_bats*2)]
+                bat_list=[Bat(et.Network(5,1,[])) for bat in range(number_of_initial_bats*2)]
 if __name__=="__main__":
     main()
 

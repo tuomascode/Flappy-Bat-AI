@@ -1,17 +1,15 @@
 
 import random as r
 from math import tanh
-import time
-class Hermosolu():
+class Node():
     def __init__(self,index,weight):
         self.index=index
         self.back_neighbours=[]
         self.factors=[]
         self.weight=weight
-    def append_neighbour(self,naapuri,kerroin):
-        # print(f"lisattiin kytkös joka saapuu soluun numero {self.index} solusta numero {naapuri.index}")
-        self.factors.append(kerroin)
-        self.back_neighbours.append(naapuri)
+    def append_neighbour(self,neighbour,factor):
+        self.factors.append(factor)
+        self.back_neighbours.append(neighbour)
     def solve_network_output(self):
         sum=self.weight
         if len(self.back_neighbours)==0:
@@ -26,92 +24,85 @@ class Hermosolu():
                     raise ValueError
             return tanh(sum)
 
-class Hermoverkko:
-    def __init__(self,aloitussolmut,lopetussolmut,taulukko):
-        if len(taulukko)==0:
-            self.solumaara=aloitussolmut+lopetussolmut
-            self.tasot=[]
-            self.alut=[i for i in range(aloitussolmut)]
-            self.loput=[i+aloitussolmut for i in range(lopetussolmut)]
-            self.taulukko=[[None for j in range(self.solumaara)] for i in range(self.solumaara)]
-            for i in self.alut:
-                for j in self.loput:
-                    self.taulukko[i][j]=r.uniform(-1, 1)
-            for i in self.loput:
-                self.taulukko[i][i]=r.uniform(-2, 2)
+class Network:
+    #The basic functionality of the network is in this class.
+    #The class offers functions for creating networks and mutating them in various ways.
+    #The class also provides with basic checking functions that ensure, that mutation functions don't break the networks.
+    #Write and read functions are also provided to save the network. Not sure why anyone would do this but here we are.
+    def __init__(self,input_nodes,output_nodes,table):
+        if len(table)==0:
+            self.number_of_nodes=input_nodes+output_nodes
+            self.levels=[]
+            self.begins=[i for i in range(input_nodes)]
+            self.ends=[i+input_nodes for i in range(output_nodes)]
+            self.network_table=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
+            for i in self.begins:
+                for j in self.ends:
+                    self.network_table[i][j]=r.uniform(-1, 1)
+            for i in self.ends:
+                self.network_table[i][i]=r.uniform(-2, 2)
             self.primitive=True
             self.id=r.randint(0,999999999)
-            self.luo_hermoverkko()
+            self.create_new_network()
         else:
             self.id=r.randint(0,999999999)
-            self.solumaara=len(taulukko)
-            self.alut=[i for i in range(aloitussolmut)]
-            self.tasot=[]
-            if self.solumaara!=aloitussolmut+lopetussolmut:
-                for i in range(aloitussolmut,len(taulukko)-lopetussolmut):
-                    self.tasot.append(i)
+            self.number_of_nodes=len(table)
+            self.begins=[i for i in range(input_nodes)]
+            self.levels=[]
+            if self.number_of_nodes!=input_nodes+output_nodes:
+                for i in range(input_nodes,len(table)-output_nodes):
+                    self.levels.append(i)
             self.primitive=False
-            if len(self.tasot)==0:
+            if len(self.levels)==0:
                 self.primitive=True
-            self.loput=[luku for luku in range(len(self.alut)+len(self.tasot),self.solumaara)]
-            self.taulukko=taulukko
-            self.luo_hermoverkko()
-    def luo_hermoverkko(self):
+            self.ends=[luku for luku in range(len(self.begins)+len(self.levels),self.number_of_nodes)]
+            self.network_table=table
+            self.create_new_network()
+    def create_new_network(self):
         self.solut=[]
-        for i in self.alut:
-            self.solut.append(Hermosolu(i,self.taulukko[i][i]))
-        for i in self.tasot:
-            self.solut.append(Hermosolu(i,self.taulukko[i][i]))
-        for i in self.loput:
-            self.solut.append(Hermosolu(i,self.taulukko[i][i]))
-        for i in range(len(self.taulukko)-1,-1,-1):
+        for i in self.begins:
+            self.solut.append(Node(i,self.network_table[i][i]))
+        for i in self.levels:
+            self.solut.append(Node(i,self.network_table[i][i]))
+        for i in self.ends:
+            self.solut.append(Node(i,self.network_table[i][i]))
+        for i in range(len(self.network_table)-1,-1,-1):
             for j in range(i-1,-1,-1):
-                if self.taulukko[j][i]!=None:
-                    self.solut[i].append_neighbour(self.solut[j],self.taulukko[j][i])
-    def laske_kompleksisuus(self):
+                if self.network_table[j][i]!=None:
+                    self.solut[i].append_neighbour(self.solut[j],self.network_table[j][i])
+    def calculate_complexicity(self):
         sum=0
-        sum+=self.solumaara
-        for i in range(len(self.taulukko)-1):
-            for j in range(i+1,len(self.taulukko)):
-                if self.taulukko[i][j]!=None:
+        sum+=self.number_of_nodes
+        for i in range(len(self.network_table)-1):
+            for j in range(i+1,len(self.network_table)):
+                if self.network_table[i][j]!=None:
                     sum+=1
         return sum
-    def laske_mahdolliset_yhteydet(self):
-        sum=0
-        for i in range(len(self.taulukko)-1):
-            for j in range(i+1,len(self.taulukko)):
-                if self.taulukko[i][j]==None:
-                    sum+=1
-        return sum
-    def ratkaise(self,input):
+    def return_network_solution(self,input):
         ratkaisut=[]
-        for index in self.alut:
+        for index in self.begins:
             self.solut[index].weight=input[index]
-        for i in self.loput:
+        for i in self.ends:
             ratkaisut.append(self.solut[i].solve_network_output())
         return ratkaisut
-    def tarkista_solmun_poisto(self):
-        if len(self.tasot)!=0:
-            return True
-        else: return False
-    def poista_solmu(self):
-        solmu=r.choice(self.tasot)
-        uusitaulu=[[self.taulukko[i][j] for j in range(len(self.taulukko))]for i in range(len(self.taulukko))]
-        loppusolmut=[]
-        alkusolmut=[]
+    def remove_node(self):
+        solmu=r.choice(self.levels)
+        uusitaulu=[[self.network_table[i][j] for j in range(len(self.network_table))]for i in range(len(self.network_table))]
+        end_nodes=[]
+        first_order_nodes=[]
         for i in range(len(uusitaulu)):
             for j in range(len(uusitaulu)):
                 if j==solmu:
                     if j!=i:
-                        if self.taulukko[j][i]!=None:
-                            alkusolmut.append(i)
+                        if self.network_table[j][i]!=None:
+                            first_order_nodes.append(i)
                 if i==solmu:
                     if j!=i:
-                        if self.taulukko[j][i]!=None:
-                            loppusolmut.append(j)
-        for i in loppusolmut:
-            for j in alkusolmut:
-                uusitaulu[i][j]=(self.taulukko[solmu][j]+self.taulukko[i][solmu])/2
+                        if self.network_table[j][i]!=None:
+                            end_nodes.append(j)
+        for i in end_nodes:
+            for j in first_order_nodes:
+                uusitaulu[i][j]=(self.network_table[solmu][j]+self.network_table[i][solmu])/2
         for i in range(len(uusitaulu)):
             uusitaulu[solmu][i]=None
             uusitaulu[i][solmu]=None
@@ -126,13 +117,13 @@ class Hermoverkko:
                 else:
                     if i<solmu:
                         uusitaulukaksi[i][j]=uusitaulu[i][j]
-        self.taulukko=uusitaulukaksi
-        self.tasot=self.tasot[:-1]
-        for i in range(len(self.loput)):
-            self.loput[i]-=1
-        self.solumaara-=1
-        self.luo_hermoverkko()
-    def luo_uusi_solmu(self,mutability):
+        self.network_table=uusitaulukaksi
+        self.levels=self.levels[:-1]
+        for i in range(len(self.ends)):
+            self.ends[i]-=1
+        self.number_of_nodes-=1
+        self.create_new_network()
+    def create_new_node(self,mutability=1):
         if mutability==1:
             heitto=r.uniform(0,0.4)
         elif mutability==2:
@@ -145,64 +136,64 @@ class Hermoverkko:
             heitto=r.uniform(1.6,2)
         ala=0-heitto
         yla=0+heitto
-        if len(self.tasot)==0:
+        if len(self.levels)==0:
             self.primitive=False
-            lukema=self.alut[-1]+1
-            self.solumaara+=1
-            uusitaulu=[[None for j in range(self.solumaara)] for i in range(self.solumaara)]
-            for index, rivi in enumerate((self.taulukko)):
+            lukema=self.begins[-1]+1
+            self.number_of_nodes+=1
+            uusitaulu=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
+            for index, rivi in enumerate((self.network_table)):
                 for jindex, luku in enumerate(rivi):
                     if luku!=None:
                         if jindex>=lukema:
                             if index>=lukema:
-                                uusitaulu[index+1][jindex+1]=self.taulukko[index][jindex]
+                                uusitaulu[index+1][jindex+1]=self.network_table[index][jindex]
                             else:
-                                uusitaulu[index][jindex+1]=self.taulukko[index][jindex]
-            self.taulukko=uusitaulu
-            for i in range(len(self.loput)):
-                self.loput[i]+=1
-            solmu=r.choice(self.loput)
+                                uusitaulu[index][jindex+1]=self.network_table[index][jindex]
+            self.network_table=uusitaulu
+            for i in range(len(self.ends)):
+                self.ends[i]+=1
+            solmu=r.choice(self.ends)
             toinensolmu=r.choice(self.solut[solmu-1].back_neighbours).index
-            self.taulukko[lukema][solmu]=self.taulukko[toinensolmu][solmu]
-            self.taulukko[toinensolmu][lukema]=1
-            self.taulukko[toinensolmu][solmu]=None
-            self.taulukko[lukema][lukema]=r.uniform(ala, yla)
-            self.tasot.append(lukema)
-            self.luo_hermoverkko()
+            self.network_table[lukema][solmu]=self.network_table[toinensolmu][solmu]
+            self.network_table[toinensolmu][lukema]=1
+            self.network_table[toinensolmu][solmu]=None
+            self.network_table[lukema][lukema]=r.uniform(ala, yla)
+            self.levels.append(lukema)
+            self.create_new_network()
         else:
-            lukema=r.randint(self.alut[-1],self.tasot[-1])
-            self.solumaara+=1
-            uusitaulu=[[None for j in range(self.solumaara)] for i in range(self.solumaara)]
-            for index, rivi in enumerate((self.taulukko)):
+            lukema=r.randint(self.begins[-1],self.levels[-1])
+            self.number_of_nodes+=1
+            uusitaulu=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
+            for index, rivi in enumerate((self.network_table)):
                 for jindex, luku in enumerate(rivi):
                     if luku!=None:
                         if index<=lukema and jindex<=lukema:
-                            uusitaulu[index][jindex]=self.taulukko[index][jindex]
+                            uusitaulu[index][jindex]=self.network_table[index][jindex]
                         elif lukema<jindex and index<=lukema:
-                            uusitaulu[index][jindex+1]=self.taulukko[index][jindex]
+                            uusitaulu[index][jindex+1]=self.network_table[index][jindex]
                         elif lukema<jindex and index>lukema:
-                            uusitaulu[index+1][jindex+1]=self.taulukko[index][jindex]
-            self.tasot.append(self.tasot[-1]+1)
-            for i in range(len(self.loput)):
-                self.loput[i]+=1
+                            uusitaulu[index+1][jindex+1]=self.network_table[index][jindex]
+            self.levels.append(self.levels[-1]+1)
+            for i in range(len(self.ends)):
+                self.ends[i]+=1
             lukema+=1
-            self.taulukko=uusitaulu
+            self.network_table=uusitaulu
             while True:
-                solmu=r.randint(lukema+1,self.loput[-1])
-                apulista=[]
+                solmu=r.randint(lukema+1,self.ends[-1])
+                apunetwork_list=[]
                 for i in range(lukema):
-                    if self.taulukko[i][solmu]!=None:
-                        apulista.append(i)
+                    if self.network_table[i][solmu]!=None:
+                        apunetwork_list.append(i)
                 try:
-                    toinensolmu=r.choice(apulista)
+                    toinensolmu=r.choice(apunetwork_list)
                     break
                 except: continue
-            self.taulukko[lukema][lukema]=r.uniform(ala, yla)
-            self.taulukko[lukema][solmu]=self.taulukko[toinensolmu][solmu]
-            self.taulukko[toinensolmu][lukema]=1
-            self.taulukko[toinensolmu][solmu]=None
-            self.luo_hermoverkko()
-    def luo_uusi_yhteys(self,mutability):
+            self.network_table[lukema][lukema]=r.uniform(ala, yla)
+            self.network_table[lukema][solmu]=self.network_table[toinensolmu][solmu]
+            self.network_table[toinensolmu][lukema]=1
+            self.network_table[toinensolmu][solmu]=None
+            self.create_new_network()
+    def create_new_connection(self,mutability=1):
         if mutability==1:
             heitto=r.uniform(0,0.2)
         elif mutability==2:
@@ -216,511 +207,229 @@ class Hermoverkko:
         ala=0-heitto
         yla=0+heitto
         sum=0
-        if len(self.tasot)==0:
+        if len(self.levels)==0:
             return
-        for j in range(0,len(self.taulukko)-1):
-            for i in range(self.tasot[0],len(self.taulukko)):
+        for j in range(0,len(self.network_table)-1):
+            for i in range(self.levels[0],len(self.network_table)):
                 if j>=i:
                     continue
-                if self.taulukko[j][i]==None:
+                if self.network_table[j][i]==None:
                     sum+=1
         if sum==0:
             return
         kytkos=r.randint(1,sum)
         index=1
-        uusitaulu=[[None for j in range(len(self.taulukko))] for i in range(len(self.taulukko))]
-        for i in range(len(self.taulukko)):
-            for j in range(len(self.taulukko)):
-                if self.taulukko[i][j]!=None:
-                    uusitaulu[i][j]=self.taulukko[i][j]
+        uusitaulu=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
+        for i in range(len(self.network_table)):
+            for j in range(len(self.network_table)):
+                if self.network_table[i][j]!=None:
+                    uusitaulu[i][j]=self.network_table[i][j]
         for j in range(len(uusitaulu)-1):
-            for i in range(self.tasot[0],len(uusitaulu)):
+            for i in range(self.levels[0],len(uusitaulu)):
                 if j>=i:
                     continue
-                if self.taulukko[j][i]==None:
+                if self.network_table[j][i]==None:
                     if index==kytkos:
                         uusitaulu[j][i]=r.uniform(ala,yla)
-                        self.taulukko=uusitaulu
-                        self.luo_hermoverkko()
+                        self.network_table=uusitaulu
+                        self.create_new_network()
                         return
                     else:
                         index+=1
-        self.luo_hermoverkko()
-    def tarkista_yhteys(self):
-        if len(self.tasot)==0:
+        self.create_new_network()
+    def check_connection(self):
+        if len(self.levels)==0:
             return False
-        for j in range(0,len(self.taulukko)-1):
-            for i in range(self.tasot[0],len(self.taulukko)):
+        for j in range(0,len(self.network_table)-1):
+            for i in range(self.levels[0],len(self.network_table)):
                 if j>=i:
                     continue
-                if self.taulukko[j][i]==None:
+                if self.network_table[j][i]==None:
                     return True
         return False
-    def tarkista_yhteys_poisto(self):
-        for i in range(len(self.taulukko)):
+    def check_for_connection_removal(self):
+        for i in range(len(self.network_table)):
             yhteyksia=0
-            for j in range(i+1,len(self.taulukko)):
-                if j<=self.alut[-1]:
+            for j in range(i+1,len(self.network_table)):
+                if j<=self.begins[-1]:
                     continue
-                if self.taulukko[i][j]!=None:
+                if self.network_table[i][j]!=None:
                     yhteyksia+=1
             if yhteyksia>=2:
                 return True
         return False
-    def poista_yhteys(self):
-        if not self.tarkista_yhteys_poisto():
+    def remove_connection(self):
+        if not self.check_for_connection_removal():
             return
         poistettavat=[]
-        for i in range(len(self.taulukko)-1):
-            yhteydet=[]
-            for j in range(i+1,len(self.taulukko)):
-                if j<=self.alut[-1]:
+        for i in range(len(self.network_table)-1):
+            connections=[]
+            for j in range(i+1,len(self.network_table)):
+                if j<=self.begins[-1]:
                     continue
-                if self.taulukko[i][j]!=None:
-                    yhteydet.append((i,j))
-            for i in yhteydet:
+                if self.network_table[i][j]!=None:
+                    connections.append((i,j))
+            for i in connections:
                 poistettavat.append(i)
         poisto=r.choice(poistettavat)
-        uusitaulu=[[self.taulukko[i][j] for j in range(len(self.taulukko))] for i in range(len(self.taulukko))]
+        uusitaulu=[[self.network_table[i][j] for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         
         uusitaulu[poisto[0]][poisto[1]]=None
-        self.taulukko=uusitaulu
-        self.luo_hermoverkko()
-    def mutaatio(self,rate):
+        self.network_table=uusitaulu
+        self.create_new_network()
+    def mutate_network(self,rate):
         if rate==1:
-            lista=[i for i in range(100)]
+            network_list=[i for i in range(100)]
         elif rate==2:
-            lista=[i for i in range(80)]
+            network_list=[i for i in range(80)]
         elif rate==3:
-            lista=[i for i in range(60)]
+            network_list=[i for i in range(60)]
         elif rate==4:
-            lista=[i for i in range(40)]
+            network_list=[i for i in range(40)]
         elif rate==5:
-            lista=[i for i in range(20)]
+            network_list=[i for i in range(20)]
         heitto=rate*0.03
         ala=1-heitto
         yla=1+heitto
-        uusitaulu=[[None for j in range(len(self.taulukko))] for i in range(len(self.taulukko))]
-        for index,lista in enumerate(self.taulukko):
-            for jindex,luku in enumerate(lista):
+        uusitaulu=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
+        for index,network_list in enumerate(self.network_table):
+            for jindex,luku in enumerate(network_list):
                 if luku!=None:
-                    uusitaulu[index][jindex]=self.taulukko[index][jindex]
-                    if r.choice(lista)==0:
+                    uusitaulu[index][jindex]=self.network_table[index][jindex]
+                    if r.choice(network_list)==0:
                         uusitaulu[index][jindex]*=-1
                     if r.randint(1,10)<=rate:
                         uusitaulu[index][jindex]*=r.uniform(ala,yla)
-        self.taulukko=uusitaulu
-        self.luo_hermoverkko()
-    def risteytys(morefit: 'Hermoverkko',lessfit: 'Hermoverkko'):
-        erotus=morefit.solumaara-lessfit.solumaara
-        if erotus>=0:
-            uusitaulu=[[None for j in range(morefit.solumaara)] for i in range(morefit.solumaara)]
-            for index, rivi in enumerate((lessfit.taulukko)):
-                for jindex, luku in enumerate(rivi):
-                    if luku!=None:
-                        if jindex>morefit.alut[-1]:
-                            if index>morefit.alut[-1]:
-                                uusitaulu[index+erotus][jindex+erotus]=lessfit.taulukko[index][jindex]
-                            else:
-                                uusitaulu[index][jindex+erotus]=lessfit.taulukko[index][jindex]
-            puoli=len(morefit.taulukko)//+1
-            for index, lista in enumerate(morefit.taulukko):
-                for j, luku in enumerate(lista):
-                    if index>puoli or j > puoli:
-                        continue
-                    else:
-                        if uusitaulu[index][j]==None:
-                            if morefit.taulukko[index][j]==None:
-                                pass
-                            else:
-                                uusitaulu[index][j]=morefit.taulukko[index][j]
-                        else:
-                            if morefit.taulukko[index][j]==None:
-                                pass
-                            else:
-                                uusitaulu[index][j]=r.choice([morefit.taulukko[index][j],uusitaulu[index][j]])
-            return Hermoverkko(len(morefit.alut),len(morefit.loput),uusitaulu)
-        else:
-            uusitaulu=[[None for j in range(lessfit.solumaara)] for i in range(lessfit.solumaara)]
-            for i in range(len(uusitaulu)):
-                uusitaulu[i][i]=r.uniform(-2,2)
-            for index, rivi in enumerate((morefit.taulukko)):
-                for jindex, luku in enumerate(rivi):
-                    if luku!=None:
-                        if jindex>lessfit.alut[-1]:
-                            if index>lessfit.alut[-1]:
-                                uusitaulu[index-erotus][jindex-erotus]=morefit.taulukko[index][jindex]
-                            else:
-                                uusitaulu[index][jindex-erotus]=morefit.taulukko[index][jindex]
-            puoli=len(morefit.taulukko)//2+1
-            rajoitin=0
-            for i in range(len(uusitaulu)-1):
-                rajoitin+=1
-                for j in range(rajoitin,len(uusitaulu)):
-                    if uusitaulu[i][j]==None:
-                        uusitaulu[i][j]=lessfit.taulukko[i][j]
-                    else:
-                        if lessfit.taulukko[i][j]!=None:
-                            uusitaulu[index][j]=r.choice([lessfit.taulukko[index][j],uusitaulu[index][j]])
-            # laskuri=0
-            # while erotus<0:
-            #     index=r.randint(0,len(uusitaulu)-1)
-            #     luku = uusitaulu[index].count(None)
-            #     laskuri+=1
-            #     if laskuri>15:
-            #         break
-            #     if luku < len(uusitaulu)-2:
-            #         while True:
-            #             poisto=r.choice(uusitaulu[index][index+1:])
-            #             if poisto is not None:
-            #                 pindex=uusitaulu[index][index+1:].index(poisto)
-            #                 pindex+=index+1
-            #                 uusitaulu[index][pindex]=None
-            #                 erotus+=1
-            #                 break
-            erotus=int(abs(erotus))
-            uusiverkko=Hermoverkko(len(morefit.alut),len(morefit.loput),uusitaulu)
-            for i in range(erotus):
-                if uusiverkko.tarkista_solmun_poisto:
-                    uusiverkko.poista_solmu()  
-            return uusiverkko
-    def printtaa(self):
-        # apulista=[]
-        # for i, x in enumerate( self.taulukko):
-        #     apulista.append([])
-        #     for j, luku in enumerate(x):
-        #         if luku==None:
-        #             apulista[i].append("0")
-        #         elif luku==1:
-        #             apulista[i].append("1")
-        #         elif j==i:
-        #             apulista[i].append("B")
-        #         else: apulista[i].append("X")
-        # for i in apulista:
-        #     print(i)
-        # print()
-        print("Olen hermoverkko, jolla on\n",len(self.alut),"alkusolmua,\n",len(self.tasot),"välisolmua\n",len(self.loput),"loppusolmua")
-        print("suhteellinen weightni on",self.weightsum())
-        print("Kompleksisuus arvo on",self.laske_kompleksisuus())
-        print("Yhteyksiä on yhteensä",self.laske_kompleksisuus()-self.solumaara)
-    def printti(self):
-        for i in self.taulukko:
-            print(i)
-        print()
-    def weightsum(self):
-        sum=0
-        for i in range(len(self.alut)):
-            self.taulukko[i][i]=1
-        for i,x in enumerate(self.taulukko):
-            for j in range(len(x)):
-                if x[j]!=None:
-                    sum+=x[j]
-        return sum
-    def palauta_topologia(verkko,maara):
-        lista=[]
+        self.network_table=uusitaulu
+        self.create_new_network()
+    def return_mutated_network(neural_network,maara,rate):
+        network_table=[]
         for i in range(maara):
-            lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
-        for i in range(len(lista)):
-            if r.randint(0,2)==0:
-                if lista[i].tarkista_solmun_poisto():
-                    lista[i].poista_solmu()
-                else:
-                    lista[i].luo_uusi_solmu()
-            else:
-                lista[i].luo_uusi_solmu()
-        return lista
-    def palauta_mutaatio(verkko,maara,rate):
-        lista=[]
-        for i in range(maara):
-            # print(verkko.alut[-1]+1)
-            lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
-        for i in range(len(lista)):
-            lista[i].mutaatio(rate)
-        return lista
-    def palauta_kytkos(verkko,maara):
-        lista=[]
-        for i in range(maara):
-            lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
-        for i in range(len(lista)):
-            luku=lista[i].tarkista_yhteys()
-            if not luku:
-                valitsin=r.randint(0,6)
-                if valitsin==0:
-                    lista[i].mutaatio()
-                elif valitsin==1:
-                    lista[i].poista_yhteys()
-                else:
-                    lista[i].luo_uusi_solmu()
-            
-            else:
-                lista[i].luo_uusi_yhteys()
-                  
-        return lista
-    def evoluutio_strategia_yksi(lista:list,maara):
-        if len(lista)==0:
-            raise ValueError('Evoluutio strategia yksi vaatii vähintään kaksi verkkoa, jotta risteyttäminen on mahdollista')
-        if maara%100==0:
-            kerrat=int(maara/100)
-        else: kerrat = maara //100+1
-        solut=0
-        kytkokset=0
-        mutit=0
-        risteytykset=0
-        uudet=[]
-        for i in range(kerrat):
-            mutaatiot=40
-            index=0
-            while mutaatiot>1:
-                for i in Hermoverkko.palauta_mutaatio(lista[index],mutaatiot//2):
-                    uudet.append(i)
-                    mutit+=1
-                mutaatiot//=2
-                index+=1
-                if index==len(lista):
-                    index=0
-            pituus=mutaatiot-len(uudet)
-            for i in Hermoverkko.palauta_mutaatio(lista[0],pituus):
-                uudet.append(i)
-                mutit+=1
-            rist=20
-            while True:
-                for i in range(len(lista)):
-                    for j in range(i,len(lista)):
-                        uudet.append(Hermoverkko.risteytys(lista[i],lista[j]))
-                        risteytykset+=1
-                        rist-=1
-                        if rist==0:
-                            break
-                    if rist==0:
-                            break
-                if rist==0:
-                            break
-            index=0
-            for i in range(6,0,-1):
-                tiedot=Hermoverkko.palauta_kytkos(lista[index],i)
-                for j in tiedot:
-                    uudet.append(j)
-                index+=1
-                if index==len(lista):
-                    index=0
-            index=0
-            for j in range(5):
-                for i in Hermoverkko.palauta_topologia(lista[index],4):
-                    uudet.append(i)
-                    solut+=1
-                index+=1
-                if index==len(lista):
-                    index=0
-        return uudet[:maara]
-    def evoluutio_strategia_kaksi(verkko:'Hermoverkko',maara):
-        uudet=[]
-        while len(uudet)<maara:
-            for i in Hermoverkko.palauta_kytkos(verkko,15):
-                uudet.append(i)
-            for i in Hermoverkko.palauta_mutaatio(verkko,15):
-                uudet.append(i)
-            for i in Hermoverkko.palauta_topologia(verkko,15):
-                uudet.append(i)
-            r.shuffle(uudet)
-            apulista=[]
-            for i in range(5):
-                for j in range(3):
-                    apulista.append(Hermoverkko.risteytys(verkko,uudet[i+j]))
-            for i in apulista:
-                uudet.append(i)
-        r.shuffle(uudet)
-        return uudet[:maara]
-    def evoluutio_strategia_kolme(verkko:'Hermoverkko',maara,mutaatiot):
-        lista=[]
-        for i in range(maara-5):
-            lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
-        for i in range(len(lista)):
-            random=r.randint(1,3)
-            for kertaa in range(random):
-                random2=r.randint(0,4)
-                if random2==0 or random==1:
-                    lista[i].mutaatio()
-                elif random2== 2:
-                    lista[i].luo_uusi_solmu(mutaatiot)
-                elif random2==3 or random2==4:
-                    lista[i].luo_uusi_yhteys(mutaatiot)
-        lista.append(  Hermoverkko.risteytys(r.choice(lista),verkko) )
-        lista.append(  Hermoverkko.risteytys(r.choice(lista),verkko) )
-        lista.append(  Hermoverkko.risteytys(r.choice(lista),verkko) )
-        lista.append(  Hermoverkko.risteytys(r.choice(lista),verkko) )
-        lista.append(  Hermoverkko.risteytys(r.choice(lista),verkko) )
-        return lista
-    def evoluutio_strategia_neljä(verkko:'Hermoverkko',maara,mutaatiot):
-        lista=[]
-        for i in range(maara):
-            lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
-        for i in range(len(lista)):
-            random=r.randint(1+mutaatiot,3+mutaatiot)
-            for kertaa in range(random):
-                random2=r.randint(0,4)
-                if random2==0:
-                    lista[i].mutaatio()
-                elif random2==2 or random==3:
-                    if lista[i].tarkista_yhteys():
-                        lista[i].luo_uusi_yhteys(mutaatiot)
-                    else:
-                        lista[i].luo_uusi_solmu(mutaatiot)
-                else:
-                    lista[i].luo_uusi_solmu(mutaatiot)
-        return lista
-    def luo_uusia_verkko(koko,maara):
-        apulista=[]
-        while len(apulista)<maara:
-            lista=[]
-            for i in range(200):
-                lista.append(Hermoverkko(koko[0],koko[1],[]))
-            for i in range(50):
-                lista[i].luo_uusi_solmu()
-            for i in range(25):
-                lista[i].luo_uusi_yhteys()
-            apulista+=lista
-        r.shuffle(apulista)
-        return apulista[:maara]
-    def kirjoita(self,tiedostonimi):
-        with open(tiedostonimi,"w") as tiedosto:
-            for i in self.taulukko:
-                merkit=""
+            # print(neural_network.begins[-1]+1)
+            network_table.append(Network(neural_network.begins[-1]+1,len(neural_network.ends),neural_network.network_table))
+        for i in range(len(network_table)):
+            network_table[i].mutate_network(rate)
+        return network_table
+    def write(self,filename):
+        with open(filename,"w") as file:
+            for i in self.network_table:
+                write_string=""
                 for j in i:
-                    merkit+=str(j)
-                    merkit+=";"
-                merkit=merkit[:-1]
-                merkit+="\n"
-                tiedosto.write(merkit)
-            tiedosto.write((str(len(self.alut))+"\n"))
-            tiedosto.write(str(len(self.loput)))
-    def lue_ja_palauta(tiedostonimi):
-        lista=[]
+                    write_string+=str(j)
+                    write_string+=";"
+                write_string=write_string[:-1]
+                write_string+="\n"
+                file.write(write_string)
+            file.write((str(len(self.begins))+"\n"))
+            file.write(str(len(self.ends)))
+    def read_and_return(filename):
+        network_list=[]
         index=0
-        with open(tiedostonimi) as tiedosto:
-            for i in tiedosto:
-                lista.append([])
+        with open(filename) as file:
+            for i in file:
+                network_list.append([])
                 i=i.split(";")
                 for k in i:
                     k=k.replace("\n","")
                     if k=="None":
-                        lista[index].append(None)
+                        network_list[index].append(None)
                     else:
-                        lista[index].append(float(k))
+                        network_list[index].append(float(k))
                     
                 index+=1
-        aloitussolmut=int(lista[-2][0])
-        lopetussolmut=int(lista[-1][0])
-        return Hermoverkko(aloitussolmut,lopetussolmut,lista[:-2])
+        input_nodes=int(network_list[-2][0])
+        output_nodes=int(network_list[-1][0])
+        return Network(input_nodes,output_nodes,network_list[:-2])
 
 
-class Evoluutio:
+class Evolution:
+    #Evolution class hold basic functionality, which ease the use of the learning networks.
+    # 1. create_new_networks gives you the new networks with the number of input and output nodes you wish to have.
+    # 2. Evolve networks takes in a network and spits out as many networks as you wish.
+    # 3. Read and return can be used to read a network from a textfile
     def __init__(self):
         self.mutatibility=5
-    def luo_uusia_verkkoja(self,alkusolmut,loppusolmut,kompleksisuuskerroin,yhtkerroin,maara):
-        raportti=False
-        alku=time.time()
-        verkkolista=[]
-        for i in range(maara):
-            mahdolliset_yhteydet=0
-            verkko=Hermoverkko(alkusolmut,loppusolmut,[])
-            kompleksisuus_nyt=verkko.laske_kompleksisuus()
-            kompleksisuus=kompleksisuus_nyt*kompleksisuuskerroin
-            yhteydet=0
-            while kompleksisuus_nyt<kompleksisuus:
-                if len(verkko.tasot)==0:
-                    verkko.luo_uusi_solmu(5)
-                    mahdolliset_yhteydet+=alkusolmut
-                    yhteydet+=1
+    def create_new_networks(self,first_order_nodes,end_nodes,complexity_factor=1.1,connection_factor=1.2,number_of_networks=1):
+        list_of_networks=[]
+        for i in range(number_of_networks):
+            possible_connections=0
+            neural_network=Network(first_order_nodes,end_nodes,[])
+            complexity_now=neural_network.calculate_complexicity()
+            complexity=complexity_now*complexity_factor
+            connections=0
+            while complexity_now<complexity:
+                if len(neural_network.levels)==0:
+                    neural_network.create_new_node(r.randint(1,5))
+                    possible_connections+=first_order_nodes
+                    connections+=1
                 else:
-                    relaatio=yhteydet/mahdolliset_yhteydet
-                    if relaatio>yhtkerroin:
+                    connectivity_relation=connections/possible_connections
+                    if connectivity_relation>connection_factor:
                 
-                        yhteydet+=1
-                        mahdolliset_yhteydet+=alkusolmut+len(verkko.tasot)
-                        verkko.luo_uusi_solmu(5)
+                        connections+=1
+                        possible_connections+=first_order_nodes+len(neural_network.levels)
+                        neural_network.create_new_node(r.randint(1,5))
                     else:
        
-                        if verkko.tarkista_yhteys():
-                            verkko.luo_uusi_yhteys(5)
-                            yhteydet+=1
+                        if neural_network.check_connection():
+                            neural_network.create_new_connection(r.randint(1,5))
+                            connections+=1
                         else:
-                            yhteydet+=1
-                            mahdolliset_yhteydet+=alkusolmut+len(verkko.tasot)
-                            verkko.luo_uusi_solmu(5)
-                kompleksisuus_nyt=verkko.laske_kompleksisuus()
-            verkkolista.append(verkko)
-        loppu=time.time()
-        if raportti:
-            print()
-            print("Verkkojenluonti raportti:")
-            print("Luotiin",maara,"verkkoa ja aikaa kului",loppu-alku)
-            print("Verkkojen kompleksisuus on", kompleksisuus,"ja yhteyksien suhde on",yhtkerroin)
-            r.choice(verkkolista).printtaa()
-            print()
-            print()
-            print()
-        return verkkolista
+                            connections+=1
+                            possible_connections+=first_order_nodes+len(neural_network.levels)
+                            neural_network.create_new_node(r.randint(1,5))
+                complexity_now=neural_network.calculate_complexicity()
+            list_of_networks.append(neural_network)
+        return list_of_networks
+    def read_and_return(self,filename):
+        return Network.read_and_return(filename)
+    def evolve_networks(self,neural_network,complexity=2,mutation_rate=2,amount_of_networks=1):
 
-    def lue_ja_palauta(self,tiedostonimi):
-        return Hermoverkko.lue_ja_palauta(tiedostonimi)
+        #Hello fellow programmer! You've made it this far, for which I congratulate you!
+        #However, I'm going to be perfectly honest here. I wrote this code in the summer of 2022, when I had approximately
+        #6 months of coding under my belt. Now, about 7 months later I haven't got the faintest clue what the code here does.
 
-    def mutaatio_strategia_equals(self,verkkolista,maara):
-        uusilista=[]
-        while len(uusilista)<maara:
-            for i in verkkolista:
-                for j in Hermoverkko.evoluutio_strategia_neljä(i,50,self.mutatibility):
-                    uusilista.append(j)
-                for j in Hermoverkko.evoluutio_strategia_kolme(i,20,self.mutatibility):
-                    uusilista.append(j)
-                uusilista.append(Hermoverkko.risteytys(verkkolista[0],i))
-        r.shuffle(uusilista)
-        return uusilista[:maara]
+        #I know the factors such as complexity and mutation rate determine how wildly the new networks vary,
+        #however, trying to work the workings of this code post-familiarity is beyond me.
 
-    def evoluutio_strategia_2dim(self,verkko,kompleksisuus=1,mutaatiorate=1,maara=1):
-        #Tämä strategia säilyttää solmujen ja kytkösten suhteen
-        #Strategia, joka ei säilytä on kolmiulotteinen
+        #So if you are reading this, I solemnly sweat that I have improved my commenting habits!
+    
 
-        """
-        Complexity values should be beween 0 and 5
-        
-        """
-
-        if kompleksisuus==0:
-            lista=Hermoverkko.palauta_mutaatio(verkko,maara,mutaatiorate)
-            return lista
+        if complexity==0:
+            network_list=Network.return_mutated_network(neural_network,amount_of_networks,r.randint(1,5))
+            return network_list
         else:
-            lisa=r.uniform(-0.05,0.05)
-            if len(verkko.tasot)==0:
-                kerroin=1
+            addition_value=r.uniform(-0.05,0.05)
+            if len(neural_network.levels)==0:
+                mutation_factor=1
             else:
-                kerroin=(verkko.laske_kompleksisuus()-verkko.solumaara)/len(verkko.tasot)+lisa
-            lista=[]
-            for i in range(maara):
-                lista.append(Hermoverkko(verkko.alut[-1]+1,len(verkko.loput),verkko.taulukko))
+                mutation_factor=(neural_network.calculate_complexicity()-neural_network.number_of_nodes)/len(neural_network.levels)+addition_value
+            network_list=[]
+            for i in range(amount_of_networks):
+                network_list.append(Network(neural_network.begins[-1]+1,len(neural_network.ends),neural_network.network_table))
            
-            for i in range(len(lista)):
-                if r.randint(0,1)==1: #Kasvatetaan verkon kokoa
-                    for k in range(kompleksisuus):
-                        if len(lista[i].tasot)==0:
-                            lista[i].luo_uusi_solmu(mutaatiorate)
+            for i in range(len(network_list)):
+                if r.randint(0,1)==1: 
+                    for k in range(complexity):
+                        if len(network_list[i].levels)==0:
+                            network_list[i].create_new_node(mutation_rate)
                             continue
-                        if (lista[i].laske_kompleksisuus()-lista[i].solumaara)/len(lista[i].tasot)>=kerroin:
-                            lista[i].luo_uusi_solmu(mutaatiorate)
+                        if (network_list[i].calculate_complexicity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
+                            network_list[i].create_new_node(mutation_rate)
                         else:
-                            lista[i].luo_uusi_yhteys(mutaatiorate)
-                      
+                            network_list[i].create_new_connection(mutation_rate)
                 else:
-                    for k in range(kompleksisuus):
-                        if len(lista[i].tasot)==0:
-                            lista[i].poista_yhteys()
+                    for k in range(complexity):
+                        if len(network_list[i].levels)==0:
+                            network_list[i].remove_connection()
                             continue
-                        if (lista[i].laske_kompleksisuus()-lista[i].solumaara)/len(lista[i].tasot)>=kerroin:
-                            lista[i].poista_yhteys()
+                        if (network_list[i].calculate_complexicity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
+                            network_list[i].remove_connection()
                         else:
-                            lista[i].poista_solmu()
-                for b in range(mutaatiorate-1):
-                    lista[i].mutaatio(mutaatiorate)
-        return lista
+                            network_list[i].remove_node()
+                for b in range(mutation_rate-1):
+                    network_list[i].mutate_network(mutation_rate)
+        return network_list
 
 
 
@@ -734,10 +443,9 @@ class Evoluutio:
 
 
 def main():
-    verkot=[Hermoverkko(49,1,[]),Hermoverkko(49,1,[])]
-    lista=[]
-    lista.append(  Hermoverkko.risteytys(r.choice(verkot),verkot[0]) )
-    print(lista)
+    verkot=[Network(49,1,[]),Network(49,1,[])]
+    network_list=[]
+    print(network_list)
 
 
 if __name__=="__main__":
