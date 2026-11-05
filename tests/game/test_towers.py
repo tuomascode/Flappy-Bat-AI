@@ -29,10 +29,11 @@ class TestTowersInit:
         assert t.hole_between_towers == 135
 
     def test_hole_size_formula(self):
+        from flappy_bat.constants import TOWER_DIFFICULTY_RATE
         seed(0)
         reducer = 200
         t = Towers(SCREEN_X, SCREEN_Y, reducer)
-        assert t.hole_between_towers == 325 - reducer // 25
+        assert t.hole_between_towers == 325 - reducer // TOWER_DIFFICULTY_RATE
 
     def test_lower_boundary_within_screen(self):
         for i in range(10):

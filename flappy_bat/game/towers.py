@@ -7,13 +7,14 @@ from flappy_bat.constants import (
     TOWER_GAP_MAX,
     TOWER_GAP_MIN,
     TOWER_BOUNDARY,
+    TOWER_DIFFICULTY_RATE,
 )
 
 
 class Towers:
     def __init__(self, x: int, y: int, reducer: int) -> None:
         # Reducer will grow as the game goes on to make the gaps between towers smaller
-        self.hole_between_towers = TOWER_GAP_MAX - reducer // 25
+        self.hole_between_towers = TOWER_GAP_MAX - reducer // TOWER_DIFFICULTY_RATE
         if self.hole_between_towers < TOWER_GAP_MIN:
             self.hole_between_towers = TOWER_GAP_MIN
 
