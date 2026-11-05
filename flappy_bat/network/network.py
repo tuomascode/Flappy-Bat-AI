@@ -63,17 +63,43 @@ class Network:
             self.nodes.append(Node(i, self.network_table[i][i]))
         for i in range(len(self.network_table) - 1, -1, -1):
             for j in range(i - 1, -1, -1):
-                if self.network_table[j][i] != None:
+                if self.network_table[j][i] is not None:
                     self.nodes[i].append_neighbour(
                         self.nodes[j], self.network_table[j][i]
                     )
+
+    def _copy_table(self) -> list[list[float | None]]:
+        return [list(row) for row in self.network_table]
+
+    def _expand_table(self, at: int) -> list[list[float | None]]:
+        """Return a copy of network_table with a blank row and column inserted at `at`."""
+        n = len(self.network_table)
+        new_table: list[list[float | None]] = [[None] * (n + 1) for _ in range(n + 1)]
+        for i in range(n):
+            for j in range(n):
+                if self.network_table[i][j] is not None:
+                    ni = i + 1 if i >= at else i
+                    nj = j + 1 if j >= at else j
+                    new_table[ni][nj] = self.network_table[i][j]
+        return new_table
+
+    def _compact_table(self, at: int) -> list[list[float | None]]:
+        """Return a copy of network_table with row and column `at` removed."""
+        n = len(self.network_table)
+        new_table: list[list[float | None]] = [[None] * (n - 1) for _ in range(n - 1)]
+        for i in range(n - 1):
+            for j in range(n - 1):
+                si = i + 1 if i >= at else i
+                sj = j + 1 if j >= at else j
+                new_table[i][j] = self.network_table[si][sj]
+        return new_table
 
     def calculate_complexity(self) -> int:
         sum = 0
         sum += self.number_of_nodes
         for i in range(len(self.network_table) - 1):
             for j in range(i + 1, len(self.network_table)):
-                if self.network_table[i][j] != None:
+                if self.network_table[i][j] is not None:
                     sum += 1
         return sum
 
@@ -87,22 +113,15 @@ class Network:
 
     def remove_node(self) -> None:
         node = r.choice(self.levels)
-        new_table = [
-            [self.network_table[i][j] for j in range(len(self.network_table))]
-            for i in range(len(self.network_table))
-        ]
+        new_table = self._copy_table()
         end_nodes = []
         first_order_nodes = []
         for i in range(len(new_table)):
             for j in range(len(new_table)):
-                if j == node:
-                    if j != i:
-                        if self.network_table[j][i] != None:
-                            first_order_nodes.append(i)
-                if i == node:
-                    if j != i:
-                        if self.network_table[j][i] != None:
-                            end_nodes.append(j)
+                if j == node and j != i and self.network_table[j][i] is not None:
+                    first_order_nodes.append(i)
+                if i == node and j != i and self.network_table[j][i] is not None:
+                    end_nodes.append(j)
         for i in end_nodes:
             for j in first_order_nodes:
                 new_table[i][j] = (
@@ -111,20 +130,8 @@ class Network:
         for i in range(len(new_table)):
             new_table[node][i] = None
             new_table[i][node] = None
-        new_table_two = [
-            [None for j in range(len(new_table) - 1)] for i in range(len(new_table) - 1)
-        ]
-        for i in range(len(new_table_two)):
-            for j in range(len(new_table_two)):
-                if j >= node:
-                    if i >= node:
-                        new_table_two[i][j] = new_table[i + 1][j + 1]
-                    else:
-                        new_table_two[i][j] = new_table[i][j + 1]
-                else:
-                    if i < node:
-                        new_table_two[i][j] = new_table[i][j]
-        self.network_table = new_table_two
+        self.network_table = new_table
+        self.network_table = self._compact_table(node)
         self.levels = self.levels[:-1]
         if len(self.levels) == 0:
             self.primitive = True
@@ -149,24 +156,8 @@ class Network:
         if len(self.levels) == 0:
             self.primitive = False
             reading_value = self.begins[-1] + 1
+            self.network_table = self._expand_table(reading_value)
             self.number_of_nodes += 1
-            new_table = [
-                [None for j in range(self.number_of_nodes)]
-                for i in range(self.number_of_nodes)
-            ]
-            for index, line in enumerate((self.network_table)):
-                for jindex, value in enumerate(line):
-                    if value != None:
-                        if jindex >= reading_value:
-                            if index >= reading_value:
-                                new_table[index + 1][jindex + 1] = self.network_table[
-                                    index
-                                ][jindex]
-                            else:
-                                new_table[index][jindex + 1] = self.network_table[
-                                    index
-                                ][jindex]
-            self.network_table = new_table
             for i in range(len(self.ends)):
                 self.ends[i] += 1
             node = r.choice(self.ends)
@@ -183,34 +174,17 @@ class Network:
             self._rebuild_node_graph()
         else:
             reading_value = r.randint(self.begins[-1], self.levels[-1])
+            self.network_table = self._expand_table(reading_value + 1)
             self.number_of_nodes += 1
-            new_table = [
-                [None for j in range(self.number_of_nodes)]
-                for i in range(self.number_of_nodes)
-            ]
-            for index, line in enumerate((self.network_table)):
-                for jindex, value in enumerate(line):
-                    if value != None:
-                        if index <= reading_value and jindex <= reading_value:
-                            new_table[index][jindex] = self.network_table[index][jindex]
-                        elif reading_value < jindex and index <= reading_value:
-                            new_table[index][jindex + 1] = self.network_table[index][
-                                jindex
-                            ]
-                        elif reading_value < jindex and index > reading_value:
-                            new_table[index + 1][jindex + 1] = self.network_table[
-                                index
-                            ][jindex]
             self.levels.append(self.levels[-1] + 1)
             for i in range(len(self.ends)):
                 self.ends[i] += 1
             reading_value += 1
-            self.network_table = new_table
             while True:
                 node = r.randint(reading_value + 1, self.ends[-1])
                 candidate_sources = []
                 for i in range(reading_value):
-                    if self.network_table[i][node] != None:
+                    if self.network_table[i][node] is not None:
                         candidate_sources.append(i)
                 try:
                     second_node = r.choice(candidate_sources)
@@ -247,25 +221,18 @@ class Network:
             for i in range(self.levels[0], len(self.network_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] == None:
+                if self.network_table[j][i] is None:
                     sum += 1
         if sum == 0:
             return
         connection = r.randint(1, sum)
         index = 1
-        new_table = [
-            [None for j in range(len(self.network_table))]
-            for i in range(len(self.network_table))
-        ]
-        for i in range(len(self.network_table)):
-            for j in range(len(self.network_table)):
-                if self.network_table[i][j] != None:
-                    new_table[i][j] = self.network_table[i][j]
+        new_table = self._copy_table()
         for j in range(len(new_table) - 1):
             for i in range(self.levels[0], len(new_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] == None:
+                if self.network_table[j][i] is None:
                     if index == connection:
                         new_table[j][i] = r.uniform(lower_bound, upper_bound)
                         self.network_table = new_table
@@ -282,7 +249,7 @@ class Network:
             for i in range(self.levels[0], len(self.network_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] == None:
+                if self.network_table[j][i] is None:
                     return True
         return False
 
@@ -292,7 +259,7 @@ class Network:
             for j in range(i + 1, len(self.network_table)):
                 if j <= self.begins[-1]:
                     continue
-                if self.network_table[i][j] != None:
+                if self.network_table[i][j] is not None:
                     connections += 1
             if connections >= 2:
                 return True
@@ -307,15 +274,12 @@ class Network:
             for j in range(i + 1, len(self.network_table)):
                 if j <= self.begins[-1]:
                     continue
-                if self.network_table[i][j] != None:
+                if self.network_table[i][j] is not None:
                     connections.append((i, j))
             for i in connections:
                 removals.append(i)
         removal = r.choice(removals)
-        new_table = [
-            [self.network_table[i][j] for j in range(len(self.network_table))]
-            for i in range(len(self.network_table))
-        ]
+        new_table = self._copy_table()
         new_table[removal[0]][removal[1]] = None
         self.network_table = new_table
         self._rebuild_node_graph()
@@ -324,16 +288,10 @@ class Network:
         variability = rate * 0.03
         lower_bound = 1 - variability
         upper_bound = 1 + variability
-        new_table = [
-            [None for j in range(len(self.network_table))]
-            for i in range(len(self.network_table))
-        ]
-        for index, row in enumerate(self.network_table):
+        new_table = self._copy_table()
+        for index, row in enumerate(new_table):
             for jindex, value in enumerate(row):
-                if value != None:
-                    new_table[index][jindex] = self.network_table[index][jindex]
-                    if r.choice(row) == 0:
-                        new_table[index][jindex] *= -1
+                if value is not None:
                     if r.randint(1, 10) <= rate:
                         new_table[index][jindex] *= r.uniform(lower_bound, upper_bound)
         self.network_table = new_table

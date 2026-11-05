@@ -215,3 +215,52 @@ class TestNetwork:
         # Each copy should have a distinct id (almost certainly)
         ids = [m.id for m in mutated]
         assert len(set(ids)) > 1  # very unlikely all ids are the same
+
+    # --- Phase 10: table helper tests ---
+
+    def test_copy_table_is_independent(self):
+        net = Network(3, 1, [])
+        original_val = net.network_table[0][3]
+        copy = net._copy_table()
+        copy[0][3] = 999.0
+        assert net.network_table[0][3] == original_val
+
+    def test_expand_table_increases_size(self):
+        net = Network(3, 1, [])
+        n = net.number_of_nodes
+        expanded = net._expand_table(2)
+        assert len(expanded) == n + 1
+        assert all(len(row) == n + 1 for row in expanded)
+
+    def test_expand_table_new_row_col_blank(self):
+        net = Network(3, 1, [])
+        expanded = net._expand_table(2)
+        assert all(expanded[2][j] is None for j in range(len(expanded)))
+        assert all(expanded[i][2] is None for i in range(len(expanded)))
+
+    def test_compact_table_decreases_size(self):
+        net = Network(3, 1, [])
+        net.create_new_node()
+        level = net.levels[0]
+        n = net.number_of_nodes
+        compacted = net._compact_table(level)
+        assert len(compacted) == n - 1
+        assert all(len(row) == n - 1 for row in compacted)
+
+    def test_mutate_network_preserves_none_positions(self):
+        random.seed(7)
+        net = Network(3, 1, [])
+        none_before = {
+            (i, j)
+            for i, row in enumerate(net.network_table)
+            for j, v in enumerate(row)
+            if v is None
+        }
+        net.mutate_network(3)
+        none_after = {
+            (i, j)
+            for i, row in enumerate(net.network_table)
+            for j, v in enumerate(row)
+            if v is None
+        }
+        assert none_before == none_after
