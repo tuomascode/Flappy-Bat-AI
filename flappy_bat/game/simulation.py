@@ -20,6 +20,24 @@ _ADAPTIVE_HIGH_BATS = 8    # above this: uncapped speed
 _SLOW_TICKRATE = 90
 
 
+def _compute_round_stats(removed_bats: list[tuple]) -> list[tuple[str, str]]:
+    scores = sorted(s for _, s in removed_bats)
+    n = len(scores)
+    mean = sum(scores) / n
+    median = scores[n // 2]
+    top_quarter = scores[-(n // 4 or 1):]
+    top_avg = sum(top_quarter) / len(top_quarter)
+    cleared = sum(1 for s in scores if s >= 1.0)
+    return [
+        ("Round best",   f"{scores[-1]:.2f}"),
+        ("Mean",         f"{mean:.2f}"),
+        ("Median",       f"{median:.2f}"),
+        ("Top quarter",  f"{top_avg:.2f}"),
+        ("First out",    f"{scores[0]:.2f}"),
+        ("Cleared ≥1",   f"{cleared} / {n}"),
+    ]
+
+
 def run_simulation(
     bats_to_run: list[Bat],
     best_score: float,
@@ -81,6 +99,10 @@ def run_simulation(
         deletion_value = None
 
         if len(bats_to_run) == 0:
+            if display:
+                end_stats = _compute_round_stats(removed_bats)
+                _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=end_stats)
+                pygame.display.flip()
             return removed_bats
 
         # Move towers; track which one passed the left edge

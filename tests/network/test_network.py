@@ -274,7 +274,7 @@ class TestNetwork:
         net.number_of_nodes += 1
         for i in range(len(net.ends)):
             net.ends[i] += 1
-        net._wire_node_primitive(rv, -0.5, 0.5)
+        net._wire_node_primitive(rv, 0.5)
         net.levels.append(rv)
         net._rebuild_node_graph()
         has_incoming = any(net.network_table[i][rv] is not None for i in range(rv))
@@ -293,7 +293,7 @@ class TestNetwork:
         for i in range(len(net.ends)):
             net.ends[i] += 1
         rv += 1
-        net._wire_node_complex(rv, -0.5, 0.5)
+        net._wire_node_complex(rv, 0.5)
         net._rebuild_node_graph()
         has_incoming = any(net.network_table[i][rv] is not None for i in range(rv))
         has_outgoing = any(net.network_table[rv][j] is not None for j in range(rv + 1, net.number_of_nodes))

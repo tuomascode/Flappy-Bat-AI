@@ -26,6 +26,33 @@ _DOWN_COLOUR = (220, 110, 60)
 _NEUTRAL_COLOUR = (180, 180, 180)
 
 _TEXT = "text"
+_END_HEADER_COLOUR = (200, 200, 255)
+
+
+def _draw_end_panel(
+    screen: pygame.Surface,
+    rows: list[tuple[str, str]],
+) -> None:
+    panel_x = screen.get_width() - _PANEL_W - _PANEL_MARGIN
+    n_rows = len(rows) + 1
+    panel_h = _ROW_H * n_rows + _PADDING_X
+    panel_y = screen.get_height() - panel_h - _PANEL_MARGIN
+
+    panel = pygame.Surface((_PANEL_W, panel_h), pygame.SRCALPHA)
+    panel.fill(_PANEL_COLOUR)
+    screen.blit(panel, (panel_x, panel_y))
+
+    font_header = pygame.font.SysFont("Arial", 14, bold=True)
+    font_label = pygame.font.SysFont("Arial", 15)
+    font_value = pygame.font.SysFont("Arial", 18, bold=True)
+
+    y = panel_y + _PADDING_X // 2
+    screen.blit(font_header.render("Last round", True, _END_HEADER_COLOUR), (panel_x + _PADDING_X, y + 3))
+
+    for idx, (label, val) in enumerate(rows):
+        y = panel_y + (idx + 1) * _ROW_H + _PADDING_X // 2
+        screen.blit(font_label.render(label, True, _LABEL_COLOUR), (panel_x + _PADDING_X, y + 3))
+        screen.blit(font_value.render(val, True, _VALUE_COLOUR), (panel_x + _VALUE_X, y))
 
 
 def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
@@ -77,6 +104,7 @@ def _draw_frame(
     score: int,
     featured_bat: object | None = None,
     tickrate: int = 0,
+    end_stats: list[tuple[str, str]] | None = None,
 ) -> None:
     screen.fill((100, 100, 100))
 
@@ -122,3 +150,6 @@ def _draw_frame(
             screen.blit(font_value.render(val, True, colour), (panel_x + _VALUE_X, y))
         else:
             _draw_bar(screen, panel_x + _VALUE_X, y + 4, float(val), colour)
+
+    if end_stats is not None:
+        _draw_end_panel(screen, end_stats)

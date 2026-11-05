@@ -83,20 +83,16 @@ class Network:
         idx = np.concatenate([np.arange(at), np.arange(at + 1, n)])
         return self.network_table[np.ix_(idx, idx)].copy()
 
-    def _wire_node_primitive(
-        self, rv: int, lower_bound: float, upper_bound: float
-    ) -> None:
+    def _wire_node_primitive(self, rv: int, sigma: float) -> None:
         """Wire a newly inserted node at `rv` into a primitive (no hidden layers) network."""
         node = r.choice(self.ends)
         second_node = r.choice(self.nodes[node - 1].back_neighbours).index
         self.network_table[rv][node] = self.network_table[second_node][node]
-        self.network_table[second_node][rv] = 1
+        self.network_table[second_node][rv] = r.gauss(0, 1)
         self.network_table[second_node][node] = np.nan
-        self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
+        self.network_table[rv][rv] = r.gauss(0, sigma)
 
-    def _wire_node_complex(
-        self, rv: int, lower_bound: float, upper_bound: float
-    ) -> None:
+    def _wire_node_complex(self, rv: int, sigma: float) -> None:
         """Wire a newly inserted node at `rv` into a network that already has hidden layers."""
         while True:
             node = r.randint(rv + 1, self.ends[-1])
@@ -108,9 +104,9 @@ class Network:
                 break
             except IndexError:
                 continue
-        self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
+        self.network_table[rv][rv] = r.gauss(0, sigma)
         self.network_table[rv][node] = self.network_table[second_node][node]
-        self.network_table[second_node][rv] = 1
+        self.network_table[second_node][rv] = r.gauss(0, 1)
         self.network_table[second_node][node] = np.nan
 
     def _find_node_neighbors(self, node: int) -> tuple[list[int], list[int]]:
@@ -168,9 +164,7 @@ class Network:
 
     def create_new_node(self, mutability: int = 1) -> None:
         _ranges = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0)]
-        variability = r.uniform(*_ranges[mutability - 1])
-        lower_bound = -variability
-        upper_bound = variability
+        sigma = r.uniform(*_ranges[mutability - 1])
         if len(self.levels) == 0:
             self.primitive = False
             rv = self.begins[-1] + 1
@@ -178,7 +172,7 @@ class Network:
             self.number_of_nodes += 1
             for i in range(len(self.ends)):
                 self.ends[i] += 1
-            self._wire_node_primitive(rv, lower_bound, upper_bound)
+            self._wire_node_primitive(rv, sigma)
             self.levels.append(rv)
             self._rebuild_node_graph()
         else:
@@ -189,17 +183,15 @@ class Network:
             for i in range(len(self.ends)):
                 self.ends[i] += 1
             rv += 1
-            self._wire_node_complex(rv, lower_bound, upper_bound)
+            self._wire_node_complex(rv, sigma)
             self._rebuild_node_graph()
 
     def create_new_connection(self, mutability: int = 1) -> None:
-        _ranges = [(0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
-        variability = r.uniform(*_ranges[mutability - 1])
-        lower_bound = -variability
-        upper_bound = variability
-        sum = 0
         if len(self.levels) == 0:
             return
+        _ranges = [(0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
+        sigma = r.uniform(*_ranges[mutability - 1])
+        sum = 0
         for j in range(0, len(self.network_table) - 1):
             for i in range(self.levels[0], len(self.network_table)):
                 if j >= i:
@@ -217,7 +209,7 @@ class Network:
                     continue
                 if np.isnan(self.network_table[j][i]):
                     if index == connection:
-                        new_table[j][i] = r.uniform(lower_bound, upper_bound)
+                        new_table[j][i] = r.gauss(0, sigma)
                         self.network_table = new_table
                         self._rebuild_node_graph()
                         return
@@ -268,16 +260,14 @@ class Network:
         self._rebuild_node_graph()
 
     def mutate_network(self, rate: int) -> None:
-        variability = rate * 0.03
-        lower_bound = 1 - variability
-        upper_bound = 1 + variability
+        sigma = rate * 0.05
         new_table = self._copy_table()
         n = len(new_table)
         present = ~np.isnan(new_table)
         flip = np.random.randint(1, 11, size=(n, n)) <= rate
         mask = present & flip
-        multipliers = np.random.uniform(lower_bound, upper_bound, size=(n, n))
-        new_table[mask] *= multipliers[mask]
+        noise = np.random.normal(0, sigma, size=(n, n))
+        new_table[mask] += noise[mask]
         self.network_table = new_table
         self._rebuild_node_graph()
 
