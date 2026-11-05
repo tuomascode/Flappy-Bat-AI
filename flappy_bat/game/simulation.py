@@ -99,10 +99,17 @@ def run_simulation(
 def _initial_bat_list(n: int) -> list[Bat]:
     """Return n Bats whose networks each pass quick_score."""
     bats: list[Bat] = []
+    tested = 0
+    last_logged = 0
     while len(bats) < n:
         network = Network(5, 1, [])
+        tested += 1
         if quick_score(network):
             bats.append(Bat(network))
+        if len(bats) - last_logged >= max(1, n // 10):
+            print(f"  Initial search: {len(bats)}/{n} viable (tested {tested}, pass rate {len(bats)/tested:.1%})")
+            last_logged = len(bats)
+    print(f"  Initial search done: {n}/{n} viable found after testing {tested} networks (pass rate {n/tested:.1%})")
     return bats
 
 
