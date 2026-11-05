@@ -29,11 +29,11 @@ def _compute_round_stats(removed_bats: list[tuple]) -> list[tuple[str, str]]:
     top_avg = sum(top_quarter) / len(top_quarter)
     cleared = sum(1 for s in scores if s >= 1.0)
     return [
-        ("Round best",   f"{scores[-1]:.2f}"),
-        ("Mean",         f"{mean:.2f}"),
-        ("Median",       f"{median:.2f}"),
-        ("Top quarter",  f"{top_avg:.2f}"),
-        ("First out",    f"{scores[0]:.2f}"),
+        ("Round best",   f"{scores[-1] * 100:.2f}"),
+        ("Mean",         f"{mean * 100:.2f}"),
+        ("Median",       f"{median * 100:.2f}"),
+        ("Top quarter",  f"{top_avg * 100:.2f}"),
+        ("First out",    f"{scores[0] * 100:.2f}"),
         ("Cleared ≥1",   f"{cleared} / {n}"),
     ]
 
@@ -45,6 +45,7 @@ def run_simulation(
     *,
     display: bool,
     featured_network: Network | None = None,
+    prev_round_stats: list[tuple[str, str]] | None = None,
 ) -> list[tuple[Bat, float]]:
     # Seed is set to 1 because it produces a hard obstacle in the beginning of the course.
     # Better to find one network that can actually react to obstacles than randomly easy ones
@@ -105,6 +106,7 @@ def run_simulation(
                 pygame.display.flip()
             return removed_bats
 
+
         # Move towers; track which one passed the left edge
         for tower in towers:
             tower.move()
@@ -132,8 +134,9 @@ def run_simulation(
                     - bat.y
                 )
                 / SCREEN_HEIGHT
+                * 0.009
             )
-            removed_bats.append((bat, score - mistake_value))
+            removed_bats.append((bat, score * 0.01 - mistake_value))
 
         if display:
             if adaptive:
@@ -144,7 +147,7 @@ def run_simulation(
                     tickrate = _SLOW_TICKRATE
             if tracked_bat not in bats_to_run:
                 tracked_bat = choice(bats_to_run) if bats_to_run else None
-            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate)
+            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats)
             pygame.display.flip()
             clock.tick(tickrate)
 
@@ -179,12 +182,15 @@ def main() -> None:
     bat_list = _initial_bat_list(POPULATION_SIZE)
     counter = 0
     reset_value = STAGNATION_LIMIT
+    prev_round_stats = None
 
     while True:
         counter += 1
         results_of_simulation = run_simulation(
-            bat_list, best_score, counter, display=True, featured_network=best_bat_network
+            bat_list, best_score, counter, display=True, featured_network=best_bat_network,
+            prev_round_stats=prev_round_stats,
         )
+        prev_round_stats = _compute_round_stats(results_of_simulation)
         results_of_simulation.sort(reverse=True, key=lambda x: x[1])
 
         # Reset seed so network evolution works. Seed is set to 1 in the actual game to shape the obstacle course.

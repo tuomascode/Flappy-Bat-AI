@@ -128,7 +128,7 @@ def _draw_frame(
     rows: list[tuple[str, str, str, tuple[int, int, int]]] = [
         (_TEXT, "Generation", str(generation),                        _VALUE_COLOUR),
         (_TEXT, "Score",      str(score),                             _VALUE_COLOUR),
-        (_TEXT, "Best score", f"{best_score:.2f}",                    _BEST_COLOUR),
+        (_TEXT, "Best score", f"{best_score * 100:.2f}",               _BEST_COLOUR),
         (_TEXT, "Bats alive", str(len(bats)),                         _VALUE_COLOUR),
         (_TEXT, "Gap size",   f"{towers[0].hole_between_towers} px",  _VALUE_COLOUR),
         (_TEXT, "Tickrate",   "uncapped" if tickrate == 0 else f"{tickrate} fps", _VALUE_COLOUR),
