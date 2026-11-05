@@ -68,13 +68,15 @@ def _compute_round_stats(removed_bats: list[tuple]) -> list[tuple[str, str]]:
     top_quarter = scores[-(n // 4 or 1):]
     top_avg = sum(top_quarter) / len(top_quarter)
     cleared = sum(1 for s in scores if s >= 1.0)
+    best_bat = max(removed_bats, key=lambda x: x[1])[0]
+    complexity = best_bat.network.calculate_complexity()
     return [
-        ("Round best",   f"{scores[-1] * 100:.2f}"),
-        ("Mean",         f"{mean * 100:.2f}"),
-        ("Median",       f"{median * 100:.2f}"),
-        ("Top quarter",  f"{top_avg * 100:.2f}"),
-        ("First out",    f"{scores[0] * 100:.2f}"),
-        ("Cleared ≥1",   f"{cleared} / {n}"),
+        ("Round best",    f"{scores[-1] * 100:.2f}"),
+        ("Mean",          f"{mean * 100:.2f}"),
+        ("Median",        f"{median * 100:.2f}"),
+        ("Top quarter",   f"{top_avg * 100:.2f}"),
+        ("Cleared ≥1",    f"{cleared} / {n}"),
+        ("Best complexity", str(complexity)),
     ]
 
 
