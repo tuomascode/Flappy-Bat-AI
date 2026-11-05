@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 import pytest
 from random import seed
 import pygame
@@ -9,7 +5,8 @@ import pygame
 pygame.init()
 pygame.display.set_mode((1, 1))
 
-from main import Towers
+from flappy_bat.game.towers import Towers
+from flappy_bat.constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 SCREEN_X = 1000

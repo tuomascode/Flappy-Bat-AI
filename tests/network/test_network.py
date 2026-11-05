@@ -1,63 +1,10 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 import pytest
 from math import tanh
 import random
 
-from NEMT import Node, Network, Evolution
-
-
-class TestNode:
-    def test_initial_state(self):
-        node = Node(3, 0.7)
-        assert node.index == 3
-        assert node.weight == 0.7
-        assert node.back_neighbours == []
-        assert node.factors == []
-
-    def test_append_neighbour(self):
-        input_node = Node(0, 0.5)
-        output_node = Node(1, 0.0)
-        output_node.append_neighbour(input_node, 0.8)
-        assert output_node.back_neighbours == [input_node]
-        assert output_node.factors == [0.8]
-
-    def test_append_multiple_neighbours(self):
-        a = Node(0, 0.5)
-        b = Node(1, -0.3)
-        out = Node(2, 0.1)
-        out.append_neighbour(a, 1.0)
-        out.append_neighbour(b, 2.0)
-        assert len(out.back_neighbours) == 2
-        assert len(out.factors) == 2
-
-    def test_solve_isolated_node_returns_weight(self):
-        node = Node(0, 1.5)
-        assert node.solve_network_output() == 1.5
-
-    def test_solve_with_one_neighbour(self):
-        input_node = Node(0, 0.5)
-        output_node = Node(1, 0.0)
-        output_node.append_neighbour(input_node, 2.0)
-        expected = tanh(0.0 + 0.5 * 2.0)
-        assert abs(output_node.solve_network_output() - expected) < 1e-10
-
-    def test_solve_with_multiple_neighbours(self):
-        a = Node(0, 0.5)
-        b = Node(1, -0.3)
-        out = Node(2, 0.1)
-        out.append_neighbour(a, 1.0)
-        out.append_neighbour(b, 2.0)
-        expected = tanh(0.1 + 0.5 * 1.0 + (-0.3) * 2.0)
-        assert abs(out.solve_network_output() - expected) < 1e-10
-
-    def test_solve_zero_weight_zero_inputs(self):
-        input_node = Node(0, 0.0)
-        output_node = Node(1, 0.0)
-        output_node.append_neighbour(input_node, 1.0)
-        assert output_node.solve_network_output() == tanh(0.0)
+from flappy_bat.network.node import Node
+from flappy_bat.network.network import Network
+from flappy_bat.network.evolution import Evolution
 
 
 class TestNetwork:
@@ -262,75 +209,3 @@ class TestNetwork:
         # Each copy should have a distinct id (almost certainly)
         ids = [m.id for m in mutated]
         assert len(set(ids)) > 1  # very unlikely all ids are the same
-
-
-class TestEvolution:
-    def test_create_networks_correct_count(self):
-        evo = Evolution()
-        nets = evo.create_new_networks(5, 1, number_of_networks=4)
-        assert len(nets) == 4
-
-    def test_created_networks_correct_io(self):
-        evo = Evolution()
-        nets = evo.create_new_networks(5, 1, number_of_networks=1)
-        assert len(nets[0].begins) == 5
-        assert len(nets[0].ends) == 1
-
-    def test_created_networks_solvable(self):
-        evo = Evolution()
-        nets = evo.create_new_networks(5, 1, number_of_networks=2)
-        for net in nets:
-            result = net.return_network_solution([0.1, 0.2, 0.3, 0.4, 0.5])
-            assert len(result) == 1
-            assert -1.0 <= result[0] <= 1.0
-
-    def test_evolve_networks_correct_count(self):
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        evolved = evo.evolve_networks(source, amount_of_networks=5)
-        assert len(evolved) == 5
-
-    def test_evolve_complexity_zero_count(self):
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        evolved = evo.evolve_networks(source, complexity=0, amount_of_networks=3)
-        assert len(evolved) == 3
-
-    def test_evolved_networks_solvable(self):
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        evolved = evo.evolve_networks(source, amount_of_networks=3)
-        for net in evolved:
-            result = net.return_network_solution([0.1, 0.2, 0.3, 0.4, 0.5])
-            assert len(result) == 1
-            assert -1.0 <= result[0] <= 1.0
-
-    def test_evolve_complexity_zero_solvable(self):
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        evolved = evo.evolve_networks(source, complexity=0, amount_of_networks=3)
-        for net in evolved:
-            result = net.return_network_solution([0.1, 0.2, 0.3, 0.4, 0.5])
-            assert len(result) == 1
-            assert -1.0 <= result[0] <= 1.0
-
-    def test_evolve_with_hidden_nodes(self):
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        source.create_new_node()
-        source.create_new_node()
-        evolved = evo.evolve_networks(source, amount_of_networks=3)
-        for net in evolved:
-            result = net.return_network_solution([0.1, 0.2, 0.3, 0.4, 0.5])
-            assert len(result) == 1
-
-    def test_read_and_return(self, tmp_path):
-        random.seed(1)
-        evo = Evolution()
-        source = evo.create_new_networks(5, 1, number_of_networks=1)[0]
-        path = str(tmp_path / "evo_net.txt")
-        source.write(path)
-        loaded = evo.read_and_return(path)
-        assert loaded.number_of_nodes == source.number_of_nodes
-        assert loaded.begins == source.begins
-        assert loaded.ends == source.ends

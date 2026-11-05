@@ -1,3 +1,11 @@
-flappy*
-__pycache__*
-__pycache__/NEMT.cpython-311.pyc
+# Virtual environment
+flappy/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Test / coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/

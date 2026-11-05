@@ -1,251 +1,231 @@
-# Flappy Bat AI — Project Plan
+# Flappy Bat AI — Agent Context & Project Plan
 
-## What This Is
+> **For the agent:** Read this file first. It contains everything you need to
+> understand the project, the active request, and what must not change. After
+> completing a request, clear the **Active Request** section and add a one-line
+> entry to **History**.
+
+---
+
+## Project Brief
 
 A Flappy Bird clone where only an AI can play. The AI is a custom
-topologically-evolving neural network (similar to NEAT). It controls the bat's
-*acceleration*, not discrete jumps, which makes the learning task harder.
+topologically-evolving neural network (similar to NEAT) implemented from
+scratch. It controls the bat's *acceleration*, not discrete jumps — a harder
+learning task than the standard Flappy Bird formulation.
+
+**Language:** Python 3.11  
+**Runtime deps:** `pygame`  
+**Dev deps:** `pytest`, `pytest-cov`  
+**Venv:** `flappy\` (Windows). Run tests with `.\flappy\Scripts\python.exe -m pytest --cov`
+
+---
+
+## Architecture
+
+```
+Flappy-Bat-AI/
+  flappy_bat/
+    __init__.py
+    constants.py          SCREEN_WIDTH, TOWER_*, ACCEL_SCALE, POPULATION_SIZE, …
+    network/
+      __init__.py         re-exports Node, Network, Evolution
+      node.py             Node class
+      network.py          Network class
+      evolution.py        Evolution class
+    game/
+      __init__.py
+      towers.py           Towers class
+      bat.py              Bat class
+      simulation.py       run_simulation, _show_loading_screen, main()
+      display.py          _draw_frame (separate for future network overlay)
+  assets/
+    flap1.png
+    flap2.png
+  tests/
+    conftest.py    sets SDL_VIDEODRIVER=dummy, SDL_AUDIODRIVER=dummy
+    network/
+      test_node.py        Node unit tests (7 tests)
+      test_network.py     Network unit tests (31 tests)
+      test_evolution.py   Evolution unit tests (9 tests)
+    game/
+      test_bat.py         Bat unit tests (20 tests)
+      test_towers.py      Towers unit tests (27 tests)
+  main.py          thin entry point (~4 lines)
+  pyproject.toml   pytest + coverage config
+```
+
+### Key classes
+
+| Class | File | Responsibility |
+|-------|------|----------------|
+| `Node` | flappy_bat/network/node.py | Single node; recursive `solve_network_output()` via `tanh` |
+| `Network` | flappy_bat/network/network.py | 2-D adjacency table, mutation ops, forward pass |
+| `Evolution` | flappy_bat/network/evolution.py | Population factory and evolution strategy |
+| `Towers` | flappy_bat/game/towers.py | Obstacle pair; moves left each frame |
+| `Bat` | flappy_bat/game/bat.py | Physics object; asks network for acceleration delta |
+
+### Critical invariants (do not break these)
+
+- Network table is a `list[list[float | None]]`; `None` means no connection.
+- `solve_network_output()` is recursive with `tanh`; do not replace with iterative.
+- Game uses `seed(1)` for the obstacle course; keep this fixed.
+- Bat controls **acceleration**, not position or velocity directly.
+- Population strategy: best + second-best, 4 × N/4 evolved batches.
+
+---
+
+## Development Philosophy
+
+1. **Test-driven.** New behaviour gets a test before or alongside the
+   implementation. Refactors require existing tests to pass unchanged.
+2. **Coverage tracked.** Run `.\flappy\Scripts\python.exe -m pytest --cov`
+   after every session. The coverage table in this file is kept up to date.
+3. **No silent failures.** Bare `except:` is banned. Catch specific exceptions.
+4. **No dead code.** Unused attributes, commented-out prints, and dead `main()`
+   stubs get deleted.
+5. **Constants over magic numbers.** Named constants in a block at the top of
+   each file; no inline literals.
+
+## Workflow
+
+Working branch: `vtuomas/opus-refactor`
+
+After every completed phase or feature:
+1. Run `.\flappy\Scripts\python.exe -m pytest --cov` — all tests must pass.
+2. Stage relevant files (never `git add -A`; name files explicitly).
+3. Commit with a short message: `phase N: <one-line summary>`.
+4. Update the **Coverage** table and **History** in this file and include
+   `project_plan.md` in the same commit.
+5. Keep `.gitignore` current — venv (`flappy/`), `__pycache__/`, `.coverage`,
+   `.pytest_cache/` must always be excluded.
+
+---
+
+## Coverage
+
+Last measured: **2026-11-05**  
+Run: `.\flappy\Scripts\python.exe -m pytest --cov --cov-report=term-missing`
+Source: `flappy_bat` package
+
+| File | Stmts | Miss | Cover | Notable uncovered |
+|------|-------|------|-------|-------------------|
+| flappy_bat/constants.py | 15 | 0 | **100%** | |
+| flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch |
+| flappy_bat/network/network.py | 311 | 27 | **91%** | `create_new_networks` complexity paths; mutation branches |
+| flappy_bat/network/evolution.py | 65 | 14 | **78%** | `evolve_networks` growth/shrink branches |
+| flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
+| flappy_bat/game/towers.py | 45 | 0 | **100%** | |
+| flappy_bat/game/display.py | 17 | 17 | **0%** | `_draw_frame` (display path only) |
+| flappy_bat/game/simulation.py | 109 | 109 | **0%** | `run_simulation`; `main()` loop |
+| **Total** | **632** | **178** | **72%** | |
+
+The `simulation.py` and `display.py` gaps are expected until the Phase 9 integration test is added.
+
+---
+
+## Planned Work
+
+### Phase 8 — Clean code
+
+Targeted improvements within the new file layout. No algorithm changes.
+
+| # | File | What | Why |
+|---|------|------|-----|
+| 8.1 | network.py | Rename `create_new_network` → `_rebuild_node_graph` | Name sounds like a constructor; it's a private post-mutation rebuild. |
+| 8.2 | network.py | Fix shadow variable in `mutate_network`: `for index, row in enumerate(self.network_table)` | `network_list` is currently used for both the table and each row. |
+| 8.3 | network.py | Fix bare `except: continue` in `create_new_node` → `except IndexError` | Same class as the already-fixed bare `except` in `Node`. |
+| 8.4 | network.py | Delete dead `main()` at bottom of NEMT.py | References undefined `verkot`; never called. |
+| 8.5 | evolution.py | Delete unused `self.mutatibility = 5` from `Evolution.__init__` | Typo-named; never read. |
+| 8.6 | evolution.py | Replace apology comment block in `evolve_networks` with accurate docstring | Current comment admits author doesn't understand the code. |
+| 8.7 | simulation.py | Replace `best_bat_network = False` sentinel with `None` | `False` is semantically wrong; `None` is idiomatic. |
+| 8.8 | simulation.py | Extract stagnation reset block → `_reset_search()` | 7-line state mutation inline; naming it makes the main loop readable. |
+
+**Success criteria:** all tests pass; `evolve_networks` has an accurate
+one-paragraph docstring.
+
+---
+
+### Phase 9 — Integration test for `run_simulation`
+
+Add the headless integration test deferred from Phase 4:
+
+```python
+def test_headless_simulation_returns_scored_results():
+    seed(1)
+    nets = Evolution().create_new_networks(5, 1, number_of_networks=10)
+    bats = [Bat(n) for n in nets]
+    results = run_simulation(bats, 0, 1, display=False)
+    assert len(results) == 10
+    assert all(isinstance(score, float) for _, score in results)
+```
+
+Lives in `tests/game/test_simulation.py`. Runs headless via conftest.py SDL
+dummy drivers. Expected to bring `main.py` coverage above 70%.
+
+---
+
+### Feature A — Save and reload best network
+
+Auto-save best network to `checkpoints/best.txt` on each new high score.
+Add `--load <path>` CLI argument to resume, skipping viable-candidate search.
+
+**Structural note:** `Network.write` / `Network.read_and_return` already handle
+serialisation. This is `argparse` + checkpoint directory plumbing only.
+
+---
+
+### Feature B — Configurable game state
+
+Extract a `GameState` dataclass so arbitrary start positions are reproducible:
+
+```python
+@dataclass
+class GameState:
+    bat_x: int = 60
+    bat_y: int = 500
+    bat_speed: float = 0.0
+    bat_acceleration: float = 0.0
+    seed_value: int = 1
+    start_score: int = 0
+```
+
+`run_simulation` accepts an optional `GameState`. Prerequisite for Feature C.
+
+---
+
+### Feature C — Initial candidate selection via structured tests
+
+Replace the full-game viable-candidate search with a `quick_score(network)` 
+function in a new `evaluation.py`. Runs the network against fixed
+`GameState` input scenarios (no pygame) and returns a rough fitness estimate.
+Pre-filters the initial population before full game evaluation.
+
+**Prerequisite:** Feature B.
+
+---
+
+### Feature D — Network visualisation overlay
+
+Draw the neural network graph alongside the game during the display phase:
+nodes as circles, weighted connections as lines, active path highlighted,
+acceleration output shown as a direction arrow.
+
+Lives entirely in `display.py`. No game-logic changes required.
+
+---
+
+## Active Request
+
+*None — waiting for next request.*
 
 ---
 
 ## History
 
-| Date | Work |
-|------|------|
-| Summer 2022 | Original implementation: game engine, neural network, evolution loop |
-| Nov 2026 | Added testing infrastructure; started refactoring plan |
-
----
-
-## Testing Plan
-
-### Philosophy
-Tests should catch regressions during refactoring without requiring a running
-game or pygame display. All tests use `pytest`.
-
-### What is covered
-
-**`tests/test_nemt.py`** — pure Python, no display needed
-- `Node`: construction, `append_neighbour`, `solve_network_output` (no inputs,
-  one input, multiple inputs)
-- `Network`: construction shape, connections, `return_network_solution`,
-  `calculate_complexicity`, `create_new_node`, `remove_node`,
-  `create_new_connection`, `remove_connection`, `mutate_network` (all rates),
-  `write`/`read_and_return` roundtrip, `return_mutated_network`
-- `Evolution`: `create_new_networks`, `evolve_networks` (with and without
-  complexity), `read_and_return`
-
-**`tests/test_towers.py`** — pygame imported but no display needed for Towers
-- Construction: hole size clamping, boundary within screen
-- Getters: return correct tuple shapes and color
-- Movement: `move`, `move_backwards`, `move_half` all update x correctly
-- `check_if_tower_passed`: correct before and after threshold
-
-### What is NOT yet covered (requires refactoring first)
-
-- `Bat` — `__init__` calls `pygame.image.load`; needs the image dependency
-  extracted before unit testing collision/movement logic is clean
-- `run_with_pygame` / `run_without_pygame` — integration tests, need a headless
-  mode that doesn't need a real display; blocked by DRY refactor below
-- `main()` evolution loop — end-to-end; would use pre-seeded networks
-
----
-
-## Refactoring Plan
-
-The goal is a clean, readable codebase while keeping the core algorithm
-identical: the same NEAT-like topological evolution, the same physics, the same
-game rules, the same seeded obstacle course.
-
-Each phase can be validated by running `pytest` before moving on.
-
----
-
-### Phase 1 — Safe cosmetic fixes (zero behaviour change)
-
-These are mechanical edits with no logic impact. Do them first so the diff for
-later phases is easier to read.
-
-| # | What | Where |
-|---|------|--------|
-| 1.1 | Rename `calculate_complexicity` → `calculate_complexity` everywhere | NEMT.py |
-| 1.2 | Rename `variablity` → `variability` everywhere | NEMT.py |
-| 1.3 | Add `@staticmethod` to `return_mutated_network` and `read_and_return` | NEMT.py |
-| 1.4 | Replace `== False` / `== True` with `not` / bare truthiness | main.py |
-| 1.5 | Replace string concatenation in display writes with f-strings | main.py |
-| 1.6 | Remove the commented-out `print` on NEMT.py:308 | NEMT.py |
-| 1.7 | Remove the uncertain `del deletion_value` lines | main.py |
-| 1.8 | Rename Finnish variable `maara` → `count` | NEMT.py |
-| 1.9 | Rename Finnish variable `poisto` → `removal` | NEMT.py |
-| 1.10 | Rename Finnish variable `apunetwork_list` → `candidate_sources` | NEMT.py |
-
-After Phase 1: all 75 existing tests should still pass unchanged.
-
----
-
-### Phase 2 — Bug fixes
-
-| # | What | Where |
-|---|------|--------|
-| 2.1 | Fix bare `except` in `Node.solve_network_output` → `except (TypeError, OverflowError)` | NEMT.py:22 |
-| 2.2 | Fix `primitive` flag not restored in `remove_node` — add `if len(self.levels) == 0: self.primitive = True` after clearing levels | NEMT.py:121 |
-
-After Phase 2: update `test_remove_node_clears_levels` to assert `primitive is True`.
-
----
-
-### Phase 3 — Extract constants
-
-Move all magic numbers to a `constants` block at the top of each file. No
-logic change, just named references.
-
-**NEMT.py** constants block:
-```python
-_WEIGHT_INIT_RANGE  = (-1.0, 1.0)   # initial input→output weights
-_BIAS_INIT_RANGE    = (-2.0, 2.0)   # output node bias
-_ACCEL_SCALE        = 0.025         # network output → acceleration delta
-```
-
-**main.py** constants block:
-```python
-SCREEN_WIDTH        = 1000
-SCREEN_HEIGHT       = 800
-TOWER_WIDTH         = 50
-TOWER_MOVE_SPEED    = 3
-TOWER_SPACING       = 200
-TOWER_GAP_MAX       = 325
-TOWER_GAP_MIN       = 135
-TOWER_BOUNDARY      = 30
-ACCEL_SCALE         = 0.025
-POPULATION_SIZE     = 500
-STAGNATION_LIMIT    = 10
-MIN_VIABLE_SCORE    = 8
-```
-
-After Phase 3: tests pass; code reads like documentation.
-
----
-
-### Phase 4 — Structural: DRY up the simulation loop
-
-`run_with_pygame` and `run_without_pygame` share ~90% of logic. The only real
-difference is whether the screen is painted each frame.
-
-**Approach:** collapse them into one function:
-
-```python
-def run_simulation(bats, best_score, generation, *, display: bool) -> list:
-    ...
-    while True:
-        ...
-        if display:
-            _draw_frame(screen, towers, bats, best_score, generation, score)
-        ...
-```
-
-Extract the drawing code into a private `_draw_frame(...)` helper so the main
-loop stays readable. The `run_without_pygame` loading screen becomes a one-time
-call before the first headless generation.
-
-`main()` then calls `run_simulation(..., display=False)` or
-`run_simulation(..., display=True)` depending on whether a viable candidate has
-been found.
-
-After Phase 4: add an integration test that runs one headless generation with a
-small population (10 bats, seeded) and checks that it returns scored results.
-
----
-
-### Phase 5 — Decouple `Bat` from pygame
-
-Currently `Bat.__init__` calls `pygame.image.load` unconditionally, making the
-class untestable without a display.
-
-**Approach:** lazy-load the images:
-
-```python
-class Bat:
-    def __init__(self, network):
-        self._images_loaded = False
-        ...
-
-    def _load_images(self):
-        if not self._images_loaded:
-            if randint(0, 1) == 1:
-                self.bat1 = pygame.image.load("flap1.png")
-                self.bat2 = pygame.image.load("flap2.png")
-            else:
-                self.bat1 = pygame.image.load("flap2.png")
-                self.bat2 = pygame.image.load("flap1.png")
-            self._images_loaded = True
-```
-
-The drawing code in `_draw_frame` calls `bat._load_images()` before blitting.
-Headless mode never calls `_load_images`, so no display is needed.
-
-After Phase 5: add tests for `Bat.check_impact` and `Bat.move_bat` by
-constructing bats with mock networks and no pygame display.
-
----
-
-### Phase 6 — Type hints
-
-Add type annotations to all public methods. This is last because the hints
-should reflect the final refactored signatures, not the originals.
-
-Minimal target (most valuable for understanding the data flow):
-```python
-class Network:
-    def return_network_solution(self, inputs: list[float]) -> list[float]: ...
-    def create_new_node(self, mutability: int = 1) -> None: ...
-    def mutate_network(self, rate: int) -> None: ...
-    def write(self, filename: str) -> None: ...
-
-class Evolution:
-    def create_new_networks(self, input_nodes: int, output_nodes: int, ...) -> list[Network]: ...
-    def evolve_networks(self, network: Network, ...) -> list[Network]: ...
-```
-
----
-
-### What does NOT change
-
-- The evolution algorithm logic inside `evolve_networks` and `create_new_networks`
-- The network table representation (2-D list, `None` = no connection)
-- The recursive `solve_network_output` using `tanh`
-- The game physics (acceleration model, collision detection, scoring formula)
-- The seeded obstacle course (`seed(1)`)
-- The population strategy in `main()` (best + second-best, 4 × N/4)
-
----
-
-## Backlog
-
-### High priority
-
-- [ ] **DRY up the two `run_*` functions** — `run_with_pygame` and
-  `run_without_pygame` share ~90% of code. Extract the shared simulation loop
-  into a single function with a `display: bool` parameter.
-- [ ] **Decouple `Bat` from pygame** — move `pygame.image.load` out of
-  `__init__` so collision/movement logic can be unit tested.
-- [ ] **Fix bare `except`** in `Node.solve_network_output` — the silent bare
-  except masks bugs; replace with `except (TypeError, OverflowError)`.
-- [ ] **Fix `primitive` flag not restored** — `remove_node` empties `levels`
-  but never sets `self.primitive = True`; caught by test
-  `test_remove_node_clears_levels`.
-
-### Medium priority
-
-- [ ] **Extract magic numbers** — `325`, `135`, `30`, `50`, `0.025`, screen
-  dimensions, etc. belong in a config section or constants module.
-- [ ] **Fix typo `calculate_complexicity`** → `calculate_complexity`
-- [ ] **Fix typo `variablity`** → `variability` throughout NEMT.py
-- [ ] **Mark static methods** — `return_mutated_network` and `read_and_return`
-  are called without `self`; add `@staticmethod`.
-- [ ] **Replace `== False`** comparisons with `not` in `main()`.
-
-### Low priority
-
-- [ ] Remove commented-out `print` on NEMT.py:308
-- [ ] Replace manual string concatenation in display text with f-strings
-- [ ] Add type hints to public methods
+| Date | Action |
+|------|--------|
+| Summer 2022 | Original implementation: game, neural network, evolution loop |
+| 2026-11-05 | Phases 1–6: cosmetic fixes, bug fixes, constants, DRY simulation loop, lazy pygame decoupling, type hints. 95 tests. |
+| 2026-11-05 | Restructured project_plan.md as agent context document; added pytest-cov; established coverage baseline (72% total, NEMT 88%, main 44%); created pyproject.toml. |
+| 2026-11-05 | Phase 7: Restructured flat layout into `flappy_bat` package (network/, game/); split NEMT.py and main.py; moved assets/; split tests into network/ and game/ subdirs; 95 tests pass. |
