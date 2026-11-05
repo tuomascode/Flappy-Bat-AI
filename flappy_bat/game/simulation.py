@@ -107,9 +107,21 @@ def run_simulation(bats_to_run: list[Bat], best_score: float, generation: int, *
             clock.tick(tickrate)
 
 
-def main():
+def _reset_search() -> tuple[None, bool, float, int, int, list[Bat]]:
+    print("Stagnated, resetting the search")
+    return (
+        None,
+        False,
+        0.0,
+        STAGNATION_LIMIT,
+        0,
+        [Bat(Network(5, 1, [])) for _ in range(POPULATION_SIZE * 2)],
+    )
+
+
+def main() -> None:
     best_score = 0
-    best_bat_network = False
+    best_bat_network = None
     evolution_object = Evolution()
     minimum_viable_network_found = False
 
@@ -135,7 +147,7 @@ def main():
         else:
             minimum_viable_network_found = True
 
-            if not best_bat_network:
+            if best_bat_network is None:
                 best_bat_network = results_of_simulation[0][0].network
                 best_score = results_of_simulation[0][1]
             elif results_of_simulation[0][1] > best_score:
@@ -160,10 +172,4 @@ def main():
             bat_list += [Bat(network) for network in evolved_bats]
 
             if reset_value == 0:
-                print("Stagnated, resetting the search")
-                best_bat_network = False
-                minimum_viable_network_found = False
-                best_score = 0
-                reset_value = STAGNATION_LIMIT
-                counter = 0
-                bat_list = [Bat(Network(5, 1, [])) for _ in range(POPULATION_SIZE * 2)]
+                best_bat_network, minimum_viable_network_found, best_score, reset_value, counter, bat_list = _reset_search()

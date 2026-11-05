@@ -27,7 +27,7 @@ class Network:
                 self.network_table[i][i]=r.uniform(*_BIAS_INIT_RANGE)
             self.primitive=True
             self.id=r.randint(0,999999999)
-            self.create_new_network()
+            self._rebuild_node_graph()
         else:
             self.id=r.randint(0,999999999)
             self.number_of_nodes=len(table)
@@ -41,9 +41,9 @@ class Network:
                 self.primitive=True
             self.ends=[value for value in range(len(self.begins)+len(self.levels),self.number_of_nodes)]
             self.network_table=table
-            self.create_new_network()
+            self._rebuild_node_graph()
 
-    def create_new_network(self) -> None:
+    def _rebuild_node_graph(self) -> None:
         self.nodes=[]
         for i in self.begins:
             self.nodes.append(Node(i,self.network_table[i][i]))
@@ -112,7 +112,7 @@ class Network:
         for i in range(len(self.ends)):
             self.ends[i]-=1
         self.number_of_nodes-=1
-        self.create_new_network()
+        self._rebuild_node_graph()
 
     def create_new_node(self, mutability: int = 1) -> None:
         if mutability==1:
@@ -150,7 +150,7 @@ class Network:
             self.network_table[second_node][node]=None
             self.network_table[reading_value][reading_value]=r.uniform(lower_bound, upper_bound)
             self.levels.append(reading_value)
-            self.create_new_network()
+            self._rebuild_node_graph()
         else:
             reading_value=r.randint(self.begins[-1],self.levels[-1])
             self.number_of_nodes+=1
@@ -178,12 +178,12 @@ class Network:
                 try:
                     second_node=r.choice(candidate_sources)
                     break
-                except: continue
+                except IndexError: continue
             self.network_table[reading_value][reading_value]=r.uniform(lower_bound,upper_bound)
             self.network_table[reading_value][node]=self.network_table[second_node][node]
             self.network_table[second_node][reading_value]=1
             self.network_table[second_node][node]=None
-            self.create_new_network()
+            self._rebuild_node_graph()
 
     def create_new_connection(self, mutability: int = 1) -> None:
         if mutability==1:
@@ -224,11 +224,11 @@ class Network:
                     if index==connection:
                         new_table[j][i]=r.uniform(lower_bound,upper_bound)
                         self.network_table=new_table
-                        self.create_new_network()
+                        self._rebuild_node_graph()
                         return
                     else:
                         index+=1
-        self.create_new_network()
+        self._rebuild_node_graph()
 
     def check_connection(self) -> bool:
         if len(self.levels)==0:
@@ -270,33 +270,23 @@ class Network:
         new_table=[[self.network_table[i][j] for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         new_table[removal[0]][removal[1]]=None
         self.network_table=new_table
-        self.create_new_network()
+        self._rebuild_node_graph()
 
     def mutate_network(self, rate: int) -> None:
-        if rate==1:
-            network_list=[i for i in range(100)]
-        elif rate==2:
-            network_list=[i for i in range(80)]
-        elif rate==3:
-            network_list=[i for i in range(60)]
-        elif rate==4:
-            network_list=[i for i in range(40)]
-        elif rate==5:
-            network_list=[i for i in range(20)]
         variability=rate*0.03
         lower_bound=1-variability
         upper_bound=1+variability
         new_table=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
-        for index,network_list in enumerate(self.network_table):
-            for jindex,value in enumerate(network_list):
+        for index, row in enumerate(self.network_table):
+            for jindex, value in enumerate(row):
                 if value!=None:
                     new_table[index][jindex]=self.network_table[index][jindex]
-                    if r.choice(network_list)==0:
+                    if r.choice(row)==0:
                         new_table[index][jindex]*=-1
                     if r.randint(1,10)<=rate:
                         new_table[index][jindex]*=r.uniform(lower_bound,upper_bound)
         self.network_table=new_table
-        self.create_new_network()
+        self._rebuild_node_graph()
 
     @staticmethod
     def return_mutated_network(neural_network: Network, count: int, rate: int) -> list[Network]:

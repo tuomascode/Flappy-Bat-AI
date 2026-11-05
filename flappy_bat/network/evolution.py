@@ -11,7 +11,7 @@ class Evolution:
     # 2. Evolve networks takes in a network and spits out as many networks as you wish.
     # 3. Read and return can be used to read a network from a textfile
     def __init__(self) -> None:
-        self.mutatibility=5
+        pass
 
     def create_new_networks(self, first_order_nodes: int, end_nodes: int, complexity_factor: float = 1.1, connection_factor: float = 1.2, number_of_networks: int = 1) -> list[Network]:
         list_of_networks=[]
@@ -50,17 +50,19 @@ class Evolution:
         return Network.read_and_return(filename)
 
     def evolve_networks(self, neural_network: Network, complexity: int = 2, mutation_rate: int = 2, amount_of_networks: int = 1) -> list[Network]:
+        """Produce `amount_of_networks` mutated copies of `neural_network`.
 
-        #Hello fellow programmer! You've made it this far, for which I congratulate you!
-        #However, I'm going to be perfectly honest here. I wrote this code in the summer of 2022, when I had approximately
-        #6 months of coding under my belt. Now, about 7 months later I haven't got the faintest clue what the code here does.
+        If `complexity == 0`, topology is frozen: each copy receives only weight
+        mutations via `mutate_network` at a random rate.
 
-        #I know the factors such as complexity and mutation rate determine how wildly the new networks vary,
-        #however, trying to work the workings of this code post-familiarity is beyond me.
-
-        #So if you are reading this, I solemnly sweat that I have improved my commenting habits!
-
-
+        If `complexity > 0`, each copy undergoes `complexity` topology operations
+        (add/remove node or connection) before weight mutation. Whether a copy
+        grows or shrinks is chosen at random (50/50). The direction of change —
+        node vs. connection — is guided by a density target derived from the
+        parent's connections-per-hidden-node ratio. Higher `mutation_rate`
+        produces more aggressive weight changes; `mutation_rate - 1` rounds of
+        weight mutation are applied per network.
+        """
         if complexity==0:
             network_list=Network.return_mutated_network(neural_network,amount_of_networks,r.randint(1,5))
             return network_list

@@ -112,39 +112,19 @@ Source: `flappy_bat` package
 |------|-------|------|-------|-------------------|
 | flappy_bat/constants.py | 15 | 0 | **100%** | |
 | flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch |
-| flappy_bat/network/network.py | 311 | 27 | **91%** | `create_new_networks` complexity paths; mutation branches |
+| flappy_bat/network/network.py | 301 | 27 | **91%** | `create_new_node` complexity paths; mutation branches |
 | flappy_bat/network/evolution.py | 65 | 14 | **78%** | `evolve_networks` growth/shrink branches |
 | flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
 | flappy_bat/game/towers.py | 45 | 0 | **100%** | |
-| flappy_bat/game/display.py | 17 | 17 | **0%** | `_draw_frame` (display path only) |
-| flappy_bat/game/simulation.py | 109 | 109 | **0%** | `run_simulation`; `main()` loop |
-| **Total** | **632** | **178** | **72%** | |
+| flappy_bat/game/display.py | 17 | 14 | **18%** | `_draw_frame` body (display path only) |
+| flappy_bat/game/simulation.py | 106 | 92 | **13%** | `run_simulation`; `main()` loop |
+| **Total** | **619** | **158** | **74%** | |
 
 The `simulation.py` and `display.py` gaps are expected until the Phase 9 integration test is added.
 
 ---
 
 ## Planned Work
-
-### Phase 8 — Clean code
-
-Targeted improvements within the new file layout. No algorithm changes.
-
-| # | File | What | Why |
-|---|------|------|-----|
-| 8.1 | network.py | Rename `create_new_network` → `_rebuild_node_graph` | Name sounds like a constructor; it's a private post-mutation rebuild. |
-| 8.2 | network.py | Fix shadow variable in `mutate_network`: `for index, row in enumerate(self.network_table)` | `network_list` is currently used for both the table and each row. |
-| 8.3 | network.py | Fix bare `except: continue` in `create_new_node` → `except IndexError` | Same class as the already-fixed bare `except` in `Node`. |
-| 8.4 | network.py | Delete dead `main()` at bottom of NEMT.py | References undefined `verkot`; never called. |
-| 8.5 | evolution.py | Delete unused `self.mutatibility = 5` from `Evolution.__init__` | Typo-named; never read. |
-| 8.6 | evolution.py | Replace apology comment block in `evolve_networks` with accurate docstring | Current comment admits author doesn't understand the code. |
-| 8.7 | simulation.py | Replace `best_bat_network = False` sentinel with `None` | `False` is semantically wrong; `None` is idiomatic. |
-| 8.8 | simulation.py | Extract stagnation reset block → `_reset_search()` | 7-line state mutation inline; naming it makes the main loop readable. |
-
-**Success criteria:** all tests pass; `evolve_networks` has an accurate
-one-paragraph docstring.
-
----
 
 ### Phase 9 — Integration test for `run_simulation`
 
@@ -229,3 +209,4 @@ Lives entirely in `display.py`. No game-logic changes required.
 | 2026-11-05 | Phases 1–6: cosmetic fixes, bug fixes, constants, DRY simulation loop, lazy pygame decoupling, type hints. 95 tests. |
 | 2026-11-05 | Restructured project_plan.md as agent context document; added pytest-cov; established coverage baseline (72% total, NEMT 88%, main 44%); created pyproject.toml. |
 | 2026-11-05 | Phase 7: Restructured flat layout into `flappy_bat` package (network/, game/); split NEMT.py and main.py; moved assets/; split tests into network/ and game/ subdirs; 95 tests pass. |
+| 2026-11-05 | Phase 8: Clean code — renamed `_rebuild_node_graph`, fixed shadow var in `mutate_network`, fixed bare except, deleted dead `mutatibility`, added `evolve_networks` docstring, `False`→`None` sentinel, extracted `_reset_search()`; 102 tests pass, 74% coverage. |
