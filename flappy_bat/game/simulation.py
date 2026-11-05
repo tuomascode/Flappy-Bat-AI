@@ -16,7 +16,7 @@ from flappy_bat.game.bat import Bat
 from flappy_bat.game.display import _draw_frame
 from flappy_bat.game.evaluation import quick_score
 
-_ADAPTIVE_HIGH_BATS = 20   # above this: uncapped speed
+_ADAPTIVE_HIGH_BATS = 8    # above this: uncapped speed
 _ADAPTIVE_LOW_BATS = 2     # at or below this: slow speed
 _SLOW_TICKRATE = 90
 
