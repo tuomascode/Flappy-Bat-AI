@@ -16,6 +16,10 @@ from flappy_bat.game.bat import Bat
 from flappy_bat.game.display import _draw_frame
 from flappy_bat.game.evaluation import quick_score
 
+_ADAPTIVE_HIGH_BATS = 20   # above this: uncapped speed
+_ADAPTIVE_LOW_BATS = 5     # at or below this: slow speed
+_SLOW_TICKRATE = 60
+
 
 def run_simulation(
     bats_to_run: list[Bat],
@@ -35,6 +39,7 @@ def run_simulation(
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     tickrate = 0
+    adaptive = True
 
     # Define towers and adjust the positions for the start
     towers = [Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer) for _ in range(3)]
@@ -64,9 +69,10 @@ def run_simulation(
                 exit()
             if display and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_x:
-                    tickrate = 60
+                    adaptive = False
+                    tickrate = _SLOW_TICKRATE
                 if event.key == pygame.K_c:
-                    tickrate = 0
+                    adaptive = True
 
         reducer += 1
         bat_remover_helper_list = []
@@ -106,6 +112,14 @@ def run_simulation(
             removed_bats.append((bat, score - mistake_value))
 
         if display:
+            if adaptive:
+                n = len(bats_to_run)
+                if n > _ADAPTIVE_HIGH_BATS:
+                    tickrate = 0
+                elif n <= _ADAPTIVE_LOW_BATS:
+                    tickrate = _SLOW_TICKRATE
+                else:
+                    tickrate = int(_SLOW_TICKRATE * (_ADAPTIVE_HIGH_BATS - n) / (_ADAPTIVE_HIGH_BATS - _ADAPTIVE_LOW_BATS))
             if tracked_bat not in bats_to_run:
                 tracked_bat = choice(bats_to_run) if bats_to_run else None
             _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat)
