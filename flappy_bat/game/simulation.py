@@ -47,6 +47,7 @@ def run_simulation(
 
     removed_bats = []
     score = 0
+    initial_bat_count = len(bats_to_run)
 
     # Pick the bat to track for the output arrow
     if display:
@@ -108,7 +109,7 @@ def run_simulation(
         if display:
             if tracked_bat not in bats_to_run:
                 tracked_bat = choice(bats_to_run) if bats_to_run else None
-            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat)
+            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, initial_bat_count)
             pygame.display.flip()
             clock.tick(tickrate)
 

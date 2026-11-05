@@ -14,22 +14,40 @@ _ROW_H = 28
 _PADDING_X = 16
 _VALUE_X = 130
 
-_ARROW_X = 60           # horizontal centre of the output arrow
-_ARROW_MAX_LEN = 70     # shaft length at |output| = 1
-_ARROW_MIN_LEN = 14     # shaft length at |output| ≈ 0 (stays visible)
-_ARROW_HEAD = 12        # arrowhead depth in pixels
-_ARROW_SHAFT_W = 6      # shaft width
-_ARROW_DOT_R = 5        # dot radius at bat mid-point
-_GUIDE_COLOUR = (55, 55, 55)
-_UP_COLOUR = (80, 190, 230)   # blue  – accelerate up
-_DOWN_COLOUR = (220, 110, 60) # orange – accelerate down
+_ARROW_X = 45
+_ARROW_MAX_LEN = 70
+_ARROW_MIN_LEN = 14
+_ARROW_HEAD = 12
+_ARROW_SHAFT_W = 6
+_ARROW_DOT_R = 5
+_UP_COLOUR = (80, 190, 230)
+_DOWN_COLOUR = (220, 110, 60)
+
+_BAR_W = 90
+_BAR_H = 11
+_BAR_BG = (45, 45, 45)
+_SCORE_BAR_COLOUR = (80, 190, 230)
+_BATS_BAR_COLOUR = (120, 200, 100)
+
+_TEXT = "text"
+_BAR = "bar"
+
+
+def _draw_bar(
+    screen: pygame.Surface,
+    x: int,
+    y: int,
+    ratio: float,
+    colour: tuple[int, int, int],
+) -> None:
+    pygame.draw.rect(screen, _BAR_BG, (x, y, _BAR_W, _BAR_H), border_radius=3)
+    fill = int(min(1.0, max(0.0, ratio)) * _BAR_W)
+    if fill:
+        pygame.draw.rect(screen, colour, (x, y, fill, _BAR_H), border_radius=3)
 
 
 def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
     h = screen.get_height()
-
-    # Subtle vertical guide line
-    pygame.draw.line(screen, _GUIDE_COLOUR, (_ARROW_X, 0), (_ARROW_X, h), 1)
 
     output: float = getattr(featured_bat, "last_output", 0.0)
     bat_y: float = getattr(featured_bat, "y", 0.0)
@@ -42,7 +60,7 @@ def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
 
     pygame.draw.circle(screen, colour, (_ARROW_X, mid_y), _ARROW_DOT_R)
 
-    if output < 0:  # accelerate up
+    if output < 0:
         shaft_top = mid_y - shaft
         tip_y = shaft_top - _ARROW_HEAD
         pygame.draw.rect(screen, colour,
@@ -52,7 +70,7 @@ def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
             (_ARROW_X + _ARROW_HEAD, shaft_top),
             (_ARROW_X, tip_y),
         ])
-    else:  # accelerate down (or zero)
+    else:
         shaft_bottom = mid_y + shaft
         tip_y = shaft_bottom + _ARROW_HEAD
         pygame.draw.rect(screen, colour,
@@ -72,22 +90,15 @@ def _draw_frame(
     generation: int,
     score: int,
     featured_bat: object | None = None,
+    initial_bat_count: int = 1,
 ) -> None:
     screen.fill((100, 100, 100))
 
     for tower in towers:
-        pygame.draw.rect(
-            screen, (0, 0, 0), tower.get_upper_boarder_sizepos(), border_radius=10
-        )
-        pygame.draw.rect(
-            screen, (0, 0, 0), tower.get_lower_boarder_sizepos(), border_radius=10
-        )
-        pygame.draw.rect(
-            screen, tower.get_color(), tower.get_lower_sizepos(), border_radius=10
-        )
-        pygame.draw.rect(
-            screen, tower.get_color(), tower.get_upper_sizepos(), border_radius=10
-        )
+        pygame.draw.rect(screen, (0, 0, 0), tower.get_upper_boarder_sizepos(), border_radius=10)
+        pygame.draw.rect(screen, (0, 0, 0), tower.get_lower_boarder_sizepos(), border_radius=10)
+        pygame.draw.rect(screen, tower.get_color(), tower.get_lower_sizepos(), border_radius=10)
+        pygame.draw.rect(screen, tower.get_color(), tower.get_upper_sizepos(), border_radius=10)
 
     for bat in bats:
         bat._load_images()
@@ -96,12 +107,15 @@ def _draw_frame(
     if featured_bat is not None:
         _draw_output_arrow(screen, featured_bat)
 
-    rows: list[tuple[str, str, tuple[int, int, int]]] = [
-        ("Generation", str(generation), _VALUE_COLOUR),
-        ("Score", str(score), _VALUE_COLOUR),
-        ("Best score", f"{best_score:.2f}", _BEST_COLOUR),
-        ("Bats alive", str(len(bats)), _VALUE_COLOUR),
-        ("Gap size", f"{towers[0].hole_between_towers} px", _VALUE_COLOUR),
+    score_ratio = score / max(best_score, 1.0)
+    bats_ratio = len(bats) / max(initial_bat_count, 1)
+
+    rows: list[tuple[str, str, str, tuple[int, int, int]]] = [
+        (_TEXT, "Generation", str(generation),                        _VALUE_COLOUR),
+        (_BAR,  "Score",      str(score_ratio),                       _SCORE_BAR_COLOUR),
+        (_TEXT, "Best score", f"{best_score:.2f}",                    _BEST_COLOUR),
+        (_BAR,  "Bats alive", str(bats_ratio),                        _BATS_BAR_COLOUR),
+        (_TEXT, "Gap size",   f"{towers[0].hole_between_towers} px",  _VALUE_COLOUR),
     ]
 
     panel_h = _ROW_H * len(rows) + _PADDING_X
@@ -112,7 +126,10 @@ def _draw_frame(
     font_label = pygame.font.SysFont("Arial", 15)
     font_value = pygame.font.SysFont("Arial", 18, bold=True)
 
-    for idx, (label, value, colour) in enumerate(rows):
+    for idx, (kind, label, val, colour) in enumerate(rows):
         y = _PANEL_Y + idx * _ROW_H + _PADDING_X // 2
         screen.blit(font_label.render(label, True, _LABEL_COLOUR), (_PANEL_X + _PADDING_X, y + 3))
-        screen.blit(font_value.render(value, True, colour), (_PANEL_X + _VALUE_X, y))
+        if kind == _TEXT:
+            screen.blit(font_value.render(val, True, colour), (_PANEL_X + _VALUE_X, y))
+        else:
+            _draw_bar(screen, _PANEL_X + _VALUE_X, y + 4, float(val), colour)
