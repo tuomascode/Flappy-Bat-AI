@@ -8,7 +8,6 @@ pygame.display.set_mode((1, 1))
 from flappy_bat.game.towers import Towers
 from flappy_bat.constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
-
 SCREEN_X = 1000
 SCREEN_Y = 800
 

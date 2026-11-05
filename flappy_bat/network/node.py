@@ -22,7 +22,7 @@ class Node:
             for i in range(len(self.back_neighbours)):
                 value = self.back_neighbours[i].solve_network_output()
                 try:
-                    sum += (value * self.factors[i])
+                    sum += value * self.factors[i]
                 except (TypeError, OverflowError):
                     raise ValueError
             return tanh(sum)

@@ -188,7 +188,13 @@ class TestNetwork:
         net.write(path)
         loaded = Network.read_and_return(path)
         inputs = [0.5, -0.3, 0.1]
-        assert abs(net.return_network_solution(inputs)[0] - loaded.return_network_solution(inputs)[0]) < 1e-6
+        assert (
+            abs(
+                net.return_network_solution(inputs)[0]
+                - loaded.return_network_solution(inputs)[0]
+            )
+            < 1e-6
+        )
 
     def test_return_mutated_network_count(self):
         net = Network(3, 1, [])

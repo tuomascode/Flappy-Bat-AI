@@ -78,20 +78,30 @@ class TestRunSimulation:
         # always produce identical scores regardless of external random state
         random.seed(99)
         nets = Evolution().create_new_networks(5, 1, number_of_networks=4)
-        scores_a = [s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)]
+        scores_a = [
+            s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
+        ]
         scores_b = [s for _, s in run_simulation(_copy_bats(nets), 0, 1, display=False)]
         assert scores_a == scores_b
 
     def test_generation_does_not_affect_scores(self):
         random.seed(77)
         nets = Evolution().create_new_networks(5, 1, number_of_networks=3)
-        scores_1 = [s for _, s in run_simulation([Bat(n) for n in nets], 0, 1,  display=False)]
-        scores_5 = [s for _, s in run_simulation(_copy_bats(nets),       0, 50, display=False)]
+        scores_1 = [
+            s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
+        ]
+        scores_5 = [
+            s for _, s in run_simulation(_copy_bats(nets), 0, 50, display=False)
+        ]
         assert scores_1 == scores_5
 
     def test_best_score_param_does_not_affect_scores(self):
         random.seed(55)
         nets = Evolution().create_new_networks(5, 1, number_of_networks=3)
-        scores_low  = [s for _, s in run_simulation([Bat(n) for n in nets], 0,   1, display=False)]
-        scores_high = [s for _, s in run_simulation(_copy_bats(nets),       999, 1, display=False)]
+        scores_low = [
+            s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
+        ]
+        scores_high = [
+            s for _, s in run_simulation(_copy_bats(nets), 999, 1, display=False)
+        ]
         assert scores_low == scores_high

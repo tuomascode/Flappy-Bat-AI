@@ -22,21 +22,25 @@ def _show_loading_screen(screen: pygame.Surface, generation: int) -> None:
     font = pygame.font.SysFont("Times New Roman", 24)
     text = font.render(
         f"Finding minimum viable network. Generation: {generation}. This can take up to 40-100 generations",
-        True, (255, 255, 255)
+        True,
+        (255, 255, 255),
     )
     screen.blit(text, (25, 25))
     text = font.render(
         "Each generation has 1000 networks. The min viable network prevents local maximum 'stuckness'",
-        True, (255, 255, 255)
+        True,
+        (255, 255, 255),
     )
     screen.blit(text, (25, 60))
     pygame.display.flip()
 
 
-def run_simulation(bats_to_run: list[Bat], best_score: float, generation: int, *, display: bool) -> list[tuple[Bat, float]]:
-    #Seed is set to 1 because it produces a hard obstacle in the beginning of the course.
-    #Better to find one network that can actually react to obstacles than randomly easy ones
-    #which you can get through just by staying still.
+def run_simulation(
+    bats_to_run: list[Bat], best_score: float, generation: int, *, display: bool
+) -> list[tuple[Bat, float]]:
+    # Seed is set to 1 because it produces a hard obstacle in the beginning of the course.
+    # Better to find one network that can actually react to obstacles than randomly easy ones
+    # which you can get through just by staying still.
     seed(1)
     reducer = 0
 
@@ -48,7 +52,7 @@ def run_simulation(bats_to_run: list[Bat], best_score: float, generation: int, *
     if not display:
         _show_loading_screen(screen, generation)
 
-    #Define towers and adjust the positions for the start
+    # Define towers and adjust the positions for the start
     towers = [Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer) for _ in range(3)]
     for i in range(len(towers)):
         for j in range(i):
@@ -77,7 +81,7 @@ def run_simulation(bats_to_run: list[Bat], best_score: float, generation: int, *
         if len(bats_to_run) == 0:
             return removed_bats
 
-        #Move towers; track which one passed the left edge
+        # Move towers; track which one passed the left edge
         for tower in towers:
             tower.move()
             if tower.check_if_tower_passed():
@@ -88,17 +92,23 @@ def run_simulation(bats_to_run: list[Bat], best_score: float, generation: int, *
             towers.remove(deletion_value)
             score += 1
 
-        #Move each bat and collect any that hit something
+        # Move each bat and collect any that hit something
         for bat in bats_to_run:
             bat.move_bat(towers[0], SCREEN_HEIGHT)
             if bat.check_impact(towers[0], SCREEN_HEIGHT):
                 if bat not in bat_remover_helper_list:
                     bat_remover_helper_list.append(bat)
 
-        #Score and remove dead bats
+        # Score and remove dead bats
         for bat in bat_remover_helper_list:
             bats_to_run.remove(bat)
-            mistake_value = abs((towers[0].lower_boundary * 2 - towers[0].hole_between_towers) / 2 - bat.y) / SCREEN_HEIGHT
+            mistake_value = (
+                abs(
+                    (towers[0].lower_boundary * 2 - towers[0].hole_between_towers) / 2
+                    - bat.y
+                )
+                / SCREEN_HEIGHT
+            )
             removed_bats.append((bat, score - mistake_value))
 
         if display:
@@ -125,25 +135,34 @@ def main() -> None:
     evolution_object = Evolution()
     minimum_viable_network_found = False
 
-    bat_list = [Bat(network) for network in evolution_object.create_new_networks(5, 1, number_of_networks=POPULATION_SIZE * 2)]
+    bat_list = [
+        Bat(network)
+        for network in evolution_object.create_new_networks(
+            5, 1, number_of_networks=POPULATION_SIZE * 2
+        )
+    ]
     counter = 0
     reset_value = STAGNATION_LIMIT
 
     while True:
         counter += 1
         results_of_simulation = run_simulation(
-            bat_list, best_score, counter,
-            display=minimum_viable_network_found
+            bat_list, best_score, counter, display=minimum_viable_network_found
         )
 
         results_of_simulation.sort(reverse=True, key=lambda x: x[1])
 
-        #Reset seed so network evolution works. Seed is set to 1 in the actual game to shape the obstacle course.
+        # Reset seed so network evolution works. Seed is set to 1 in the actual game to shape the obstacle course.
         seed()
 
-        #If no bat scored above the threshold, generate a fresh population and try again
+        # If no bat scored above the threshold, generate a fresh population and try again
         if results_of_simulation[0][1] < MIN_VIABLE_SCORE:
-            bat_list = [Bat(network) for network in evolution_object.create_new_networks(5, 1, number_of_networks=POPULATION_SIZE * 2)]
+            bat_list = [
+                Bat(network)
+                for network in evolution_object.create_new_networks(
+                    5, 1, number_of_networks=POPULATION_SIZE * 2
+                )
+            ]
         else:
             minimum_viable_network_found = True
 
@@ -156,20 +175,37 @@ def main() -> None:
             else:
                 reset_value -= 1
 
-            #Best two bats are either the top two from this round, or the carry-over best and this round's best
+            # Best two bats are either the top two from this round, or the carry-over best and this round's best
             if results_of_simulation[0][0].network == best_bat_network:
                 second_best_bat_network = results_of_simulation[1][0].network
             else:
                 second_best_bat_network = results_of_simulation[0][0].network
 
-            #Breed next generation from the two best networks
-            evolved_bats  = evolution_object.evolve_networks(best_bat_network,        amount_of_networks=POPULATION_SIZE // 4)
-            evolved_bats += evolution_object.evolve_networks(best_bat_network,        complexity=0, amount_of_networks=POPULATION_SIZE // 4)
-            evolved_bats += evolution_object.evolve_networks(second_best_bat_network, amount_of_networks=POPULATION_SIZE // 4)
-            evolved_bats += evolution_object.evolve_networks(second_best_bat_network, complexity=0, amount_of_networks=POPULATION_SIZE // 4)
+            # Breed next generation from the two best networks
+            evolved_bats = evolution_object.evolve_networks(
+                best_bat_network, amount_of_networks=POPULATION_SIZE // 4
+            )
+            evolved_bats += evolution_object.evolve_networks(
+                best_bat_network, complexity=0, amount_of_networks=POPULATION_SIZE // 4
+            )
+            evolved_bats += evolution_object.evolve_networks(
+                second_best_bat_network, amount_of_networks=POPULATION_SIZE // 4
+            )
+            evolved_bats += evolution_object.evolve_networks(
+                second_best_bat_network,
+                complexity=0,
+                amount_of_networks=POPULATION_SIZE // 4,
+            )
 
-            bat_list  = [Bat(best_bat_network), Bat(second_best_bat_network)]
+            bat_list = [Bat(best_bat_network), Bat(second_best_bat_network)]
             bat_list += [Bat(network) for network in evolved_bats]
 
             if reset_value == 0:
-                best_bat_network, minimum_viable_network_found, best_score, reset_value, counter, bat_list = _reset_search()
+                (
+                    best_bat_network,
+                    minimum_viable_network_found,
+                    best_score,
+                    reset_value,
+                    counter,
+                    bat_list,
+                ) = _reset_search()
