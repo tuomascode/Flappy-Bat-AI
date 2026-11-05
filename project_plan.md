@@ -117,33 +117,14 @@ Source: `flappy_bat` package
 | flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
 | flappy_bat/game/towers.py | 45 | 0 | **100%** | |
 | flappy_bat/game/display.py | 17 | 14 | **18%** | `_draw_frame` body (display path only) |
-| flappy_bat/game/simulation.py | 106 | 92 | **13%** | `run_simulation`; `main()` loop |
-| **Total** | **619** | **158** | **74%** | |
+| flappy_bat/game/simulation.py | 106 | 41 | **61%** | `main()` loop; keyboard/display-only paths |
+| **Total** | **619** | **107** | **83%** | |
 
-The `simulation.py` and `display.py` gaps are expected until the Phase 9 integration test is added.
+`display.py` and `main()` in simulation.py are intentionally untested — they require a real display or a full end-to-end run.
 
 ---
 
 ## Planned Work
-
-### Phase 9 — Integration test for `run_simulation`
-
-Add the headless integration test deferred from Phase 4:
-
-```python
-def test_headless_simulation_returns_scored_results():
-    seed(1)
-    nets = Evolution().create_new_networks(5, 1, number_of_networks=10)
-    bats = [Bat(n) for n in nets]
-    results = run_simulation(bats, 0, 1, display=False)
-    assert len(results) == 10
-    assert all(isinstance(score, float) for _, score in results)
-```
-
-Lives in `tests/game/test_simulation.py`. Runs headless via conftest.py SDL
-dummy drivers. Expected to bring `main.py` coverage above 70%.
-
----
 
 ### Feature A — Save and reload best network
 
@@ -210,3 +191,4 @@ Lives entirely in `display.py`. No game-logic changes required.
 | 2026-11-05 | Restructured project_plan.md as agent context document; added pytest-cov; established coverage baseline (72% total, NEMT 88%, main 44%); created pyproject.toml. |
 | 2026-11-05 | Phase 7: Restructured flat layout into `flappy_bat` package (network/, game/); split NEMT.py and main.py; moved assets/; split tests into network/ and game/ subdirs; 95 tests pass. |
 | 2026-11-05 | Phase 8: Clean code — renamed `_rebuild_node_graph`, fixed shadow var in `mutate_network`, fixed bare except, deleted dead `mutatibility`, added `evolve_networks` docstring, `False`→`None` sentinel, extracted `_reset_search()`; 102 tests pass, 74% coverage. |
+| 2026-11-05 | Phase 9: Integration tests for `run_simulation` (8 tests: return shape, all bats scored, input list emptied, determinism, param independence); 110 tests pass, 83% coverage. |
