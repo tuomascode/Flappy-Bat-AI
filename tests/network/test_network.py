@@ -56,6 +56,21 @@ class TestNetwork:
         result = net.return_network_solution([-1.0, -1.0, -1.0, -1.0, -1.0])
         assert -1.0 <= result[0] <= 1.0
 
+    def test_return_network_solution_known_value(self):
+        from math import tanh
+        # Build a hand-crafted 5→1 network with known weights
+        net = Network(5, 1, [])
+        net.network_table[:] = np.nan
+        net.network_table[0][5] = -2.0
+        net.network_table[1][5] = 1.0
+        net.network_table[3][5] = -1.0
+        net.network_table[4][5] = 0.5
+        net.network_table[5][5] = 0.1  # bias
+        net._rebuild_node_graph()
+        result = net.return_network_solution([1.0, 0.5, 0.0, -0.5, 0.25])
+        expected = tanh(-2.0 * 1.0 + 1.0 * 0.5 + (-1.0) * (-0.5) + 0.5 * 0.25 + 0.1)
+        assert result[0] == pytest.approx(expected)
+
     def test_calculate_complexity_primitive_3in_1out(self):
         net = Network(3, 1, [])
         # 4 nodes + 3 connections (each input -> output)

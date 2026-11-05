@@ -137,12 +137,13 @@ class Network:
         return self.number_of_nodes + connections
 
     def return_network_solution(self, input: list[float]) -> list[float]:
-        solutions = []
-        for index in self.begins:
-            self.nodes[index].weight = input[index]
-        for i in self.ends:
-            solutions.append(self.nodes[i].solve_network_output())
-        return solutions
+        v = np.empty(self.number_of_nodes)
+        v[self.begins] = input
+        for i in range(len(self.begins), self.number_of_nodes):
+            col = self.network_table[:i, i]
+            mask = ~np.isnan(col)
+            v[i] = np.tanh(np.dot(col[mask], v[:i][mask]) + self.network_table[i][i])
+        return [float(v[i]) for i in self.ends]
 
     def remove_node(self) -> None:
         node = r.choice(self.levels)

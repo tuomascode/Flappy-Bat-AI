@@ -111,8 +111,8 @@ Source: `flappy_bat` package
 | File | Stmts | Miss | Cover | Notable uncovered |
 |------|-------|------|-------|-------------------|
 | flappy_bat/constants.py | 14 | 0 | **100%** | |
-| flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch |
-| flappy_bat/network/network.py | 252 | 3 | **99%** | `IndexError` retry path; unreachable fallthrough |
+| flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch (node used only for mutation now) |
+| flappy_bat/network/network.py | 251 | 3 | **99%** | `IndexError` retry path; unreachable fallthrough |
 | flappy_bat/network/evolution.py | 65 | 17 | **74%** | `evolve_networks` growth/shrink branches |
 | flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
 | flappy_bat/game/towers.py | 45 | 0 | **100%** | |
@@ -199,3 +199,4 @@ Lives entirely in `display.py`. No game-logic changes required.
 | 2026-11-05 | Phase 11: Extract `_wire_node_primitive`, `_wire_node_complex`, `_find_node_neighbors`; collapse mutability if/elif to lookup table; 3 new tests; 118 pass. |
 | 2026-11-05 | Phase 12: Added numpy dependency; replaced `list[list[float\|None]]` with `np.ndarray` (nan = absent); vectorised `calculate_complexity`, `mutate_network`, `_expand_table`, `_compact_table`; updated critical invariant; 11 new tests; 126 pass, network.py 99%, total 85%. |
 | 2026-11-05 | Phase 13 (Feature C): Added `evaluation.py` with `quick_score` pass/fail filter (7 scenario tests); added `_initial_bat_list` helper; removed viable-candidate loading screen — game renders from round 1; simplified `main()` and `_reset_search`; removed `MIN_VIABLE_SCORE`; 11 new tests; 137 pass, total 86%. |
+| 2026-11-05 | Phase 14: Vectorised `return_network_solution` — replaced recursive Node traversal with numpy topological forward pass; dropped `POPULATION_SIZE` 500→100; 1 new known-value test; 138 pass, test suite 76 s→37 s. |
