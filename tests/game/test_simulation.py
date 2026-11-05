@@ -2,8 +2,9 @@ import random
 
 import pytest
 
-from flappy_bat.game.simulation import _reset_search, run_simulation
+from flappy_bat.game.simulation import _reset_search, _initial_bat_list, run_simulation
 from flappy_bat.game.bat import Bat
+from flappy_bat.game.evaluation import quick_score
 from flappy_bat.network.network import Network
 from flappy_bat.network.evolution import Evolution
 from flappy_bat.constants import STAGNATION_LIMIT, POPULATION_SIZE
@@ -24,29 +25,28 @@ class TestResetSearch:
         best_bat_network, *_ = _reset_search()
         assert best_bat_network is None
 
-    def test_minimum_viable_is_false(self):
-        _, minimum_viable, *_ = _reset_search()
-        assert minimum_viable is False
-
     def test_best_score_reset_to_zero(self):
-        _, _, best_score, *_ = _reset_search()
+        _, best_score, *_ = _reset_search()
         assert best_score == 0
 
     def test_reset_value_restored_to_stagnation_limit(self):
-        _, _, _, reset_value, *_ = _reset_search()
+        _, _, reset_value, *_ = _reset_search()
         assert reset_value == STAGNATION_LIMIT
 
     def test_counter_reset_to_zero(self):
-        _, _, _, _, counter, *_ = _reset_search()
+        _, _, _, counter, *_ = _reset_search()
         assert counter == 0
 
-    def test_bat_list_has_correct_size(self):
-        _, _, _, _, _, bat_list = _reset_search()
-        assert len(bat_list) == POPULATION_SIZE * 2
 
-    def test_bat_list_contains_bat_instances(self):
-        _, _, _, _, _, bat_list = _reset_search()
-        assert all(isinstance(b, Bat) for b in bat_list)
+class TestInitialBatList:
+    def test_returns_requested_count(self):
+        assert len(_initial_bat_list(3)) == 3
+
+    def test_contains_bat_instances(self):
+        assert all(isinstance(b, Bat) for b in _initial_bat_list(3))
+
+    def test_all_networks_pass_quick_score(self):
+        assert all(quick_score(b.network) for b in _initial_bat_list(3))
 
 
 class TestRunSimulation:

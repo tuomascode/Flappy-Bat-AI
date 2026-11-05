@@ -110,15 +110,16 @@ Source: `flappy_bat` package
 
 | File | Stmts | Miss | Cover | Notable uncovered |
 |------|-------|------|-------|-------------------|
-| flappy_bat/constants.py | 15 | 0 | **100%** | |
+| flappy_bat/constants.py | 14 | 0 | **100%** | |
 | flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch |
 | flappy_bat/network/network.py | 252 | 3 | **99%** | `IndexError` retry path; unreachable fallthrough |
 | flappy_bat/network/evolution.py | 65 | 17 | **74%** | `evolve_networks` growth/shrink branches |
 | flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
 | flappy_bat/game/towers.py | 45 | 0 | **100%** | |
+| flappy_bat/game/evaluation.py | 26 | 1 | **96%** | `return True` tail (covered by integration) |
 | flappy_bat/game/display.py | 17 | 14 | **18%** | `_draw_frame` body (display path only) |
-| flappy_bat/game/simulation.py | 106 | 41 | **61%** | `main()` loop; keyboard/display-only paths |
-| **Total** | **570** | **86** | **85%** | |
+| flappy_bat/game/simulation.py | 97 | 34 | **65%** | `main()` loop; display-only paths |
+| **Total** | **586** | **80** | **86%** | |
 
 `display.py` and `main()` in simulation.py are intentionally untested — they require a real display or a full end-to-end run.
 
@@ -180,6 +181,8 @@ Lives entirely in `display.py`. No game-logic changes required.
 
 *None — waiting for next request.*
 
+
+
 ---
 
 ## History
@@ -195,3 +198,4 @@ Lives entirely in `display.py`. No game-logic changes required.
 | 2026-11-05 | Phase 10: Extract `_copy_table`, `_expand_table`, `_compact_table` helpers; remove dead sign-flip code; `is None` → `is not None` throughout; 5 new tests; 115 pass. |
 | 2026-11-05 | Phase 11: Extract `_wire_node_primitive`, `_wire_node_complex`, `_find_node_neighbors`; collapse mutability if/elif to lookup table; 3 new tests; 118 pass. |
 | 2026-11-05 | Phase 12: Added numpy dependency; replaced `list[list[float\|None]]` with `np.ndarray` (nan = absent); vectorised `calculate_complexity`, `mutate_network`, `_expand_table`, `_compact_table`; updated critical invariant; 11 new tests; 126 pass, network.py 99%, total 85%. |
+| 2026-11-05 | Phase 13 (Feature C): Added `evaluation.py` with `quick_score` pass/fail filter (7 scenario tests); added `_initial_bat_list` helper; removed viable-candidate loading screen — game renders from round 1; simplified `main()` and `_reset_search`; removed `MIN_VIABLE_SCORE`; 11 new tests; 137 pass, total 86%. |
