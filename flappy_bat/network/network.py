@@ -94,6 +94,53 @@ class Network:
                 new_table[i][j] = self.network_table[si][sj]
         return new_table
 
+    def _wire_node_primitive(
+        self, rv: int, lower_bound: float, upper_bound: float
+    ) -> None:
+        """Wire a newly inserted node at `rv` into a primitive (no hidden layers) network."""
+        node = r.choice(self.ends)
+        second_node = r.choice(self.nodes[node - 1].back_neighbours).index
+        self.network_table[rv][node] = self.network_table[second_node][node]
+        self.network_table[second_node][rv] = 1
+        self.network_table[second_node][node] = None
+        self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
+
+    def _wire_node_complex(
+        self, rv: int, lower_bound: float, upper_bound: float
+    ) -> None:
+        """Wire a newly inserted node at `rv` into a network that already has hidden layers."""
+        while True:
+            node = r.randint(rv + 1, self.ends[-1])
+            candidate_sources = [
+                i for i in range(rv) if self.network_table[i][node] is not None
+            ]
+            try:
+                second_node = r.choice(candidate_sources)
+                break
+            except IndexError:
+                continue
+        self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
+        self.network_table[rv][node] = self.network_table[second_node][node]
+        self.network_table[second_node][rv] = 1
+        self.network_table[second_node][node] = None
+
+    def _find_node_neighbors(self, node: int) -> tuple[list[int], list[int]]:
+        """Return (upstream, downstream) neighbor indices for `node`.
+
+        upstream:   indices of nodes that have a connection pointing TO `node`
+        downstream: indices of nodes that `node` points TO
+        """
+        upstream: list[int] = []
+        downstream: list[int] = []
+        n = len(self.network_table)
+        for i in range(n):
+            for j in range(n):
+                if j == node and j != i and self.network_table[j][i] is not None:
+                    downstream.append(i)
+                if i == node and j != i and self.network_table[j][i] is not None:
+                    upstream.append(j)
+        return upstream, downstream
+
     def calculate_complexity(self) -> int:
         sum = 0
         sum += self.number_of_nodes
@@ -113,17 +160,10 @@ class Network:
 
     def remove_node(self) -> None:
         node = r.choice(self.levels)
+        upstream, downstream = self._find_node_neighbors(node)
         new_table = self._copy_table()
-        end_nodes = []
-        first_order_nodes = []
-        for i in range(len(new_table)):
-            for j in range(len(new_table)):
-                if j == node and j != i and self.network_table[j][i] is not None:
-                    first_order_nodes.append(i)
-                if i == node and j != i and self.network_table[j][i] is not None:
-                    end_nodes.append(j)
-        for i in end_nodes:
-            for j in first_order_nodes:
+        for i in upstream:
+            for j in downstream:
                 new_table[i][j] = (
                     self.network_table[node][j] + self.network_table[i][node]
                 ) / 2
@@ -141,79 +181,36 @@ class Network:
         self._rebuild_node_graph()
 
     def create_new_node(self, mutability: int = 1) -> None:
-        if mutability == 1:
-            variability = r.uniform(0, 0.4)
-        elif mutability == 2:
-            variability = r.uniform(0.4, 0.8)
-        elif mutability == 3:
-            variability = r.uniform(0.8, 1.2)
-        elif mutability == 4:
-            variability = r.uniform(1.2, 1.6)
-        elif mutability == 5:
-            variability = r.uniform(1.6, 2)
-        lower_bound = 0 - variability
-        upper_bound = 0 + variability
+        _ranges = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0)]
+        variability = r.uniform(*_ranges[mutability - 1])
+        lower_bound = -variability
+        upper_bound = variability
         if len(self.levels) == 0:
             self.primitive = False
-            reading_value = self.begins[-1] + 1
-            self.network_table = self._expand_table(reading_value)
+            rv = self.begins[-1] + 1
+            self.network_table = self._expand_table(rv)
             self.number_of_nodes += 1
             for i in range(len(self.ends)):
                 self.ends[i] += 1
-            node = r.choice(self.ends)
-            second_node = r.choice(self.nodes[node - 1].back_neighbours).index
-            self.network_table[reading_value][node] = self.network_table[second_node][
-                node
-            ]
-            self.network_table[second_node][reading_value] = 1
-            self.network_table[second_node][node] = None
-            self.network_table[reading_value][reading_value] = r.uniform(
-                lower_bound, upper_bound
-            )
-            self.levels.append(reading_value)
+            self._wire_node_primitive(rv, lower_bound, upper_bound)
+            self.levels.append(rv)
             self._rebuild_node_graph()
         else:
-            reading_value = r.randint(self.begins[-1], self.levels[-1])
-            self.network_table = self._expand_table(reading_value + 1)
+            rv = r.randint(self.begins[-1], self.levels[-1])
+            self.network_table = self._expand_table(rv + 1)
             self.number_of_nodes += 1
             self.levels.append(self.levels[-1] + 1)
             for i in range(len(self.ends)):
                 self.ends[i] += 1
-            reading_value += 1
-            while True:
-                node = r.randint(reading_value + 1, self.ends[-1])
-                candidate_sources = []
-                for i in range(reading_value):
-                    if self.network_table[i][node] is not None:
-                        candidate_sources.append(i)
-                try:
-                    second_node = r.choice(candidate_sources)
-                    break
-                except IndexError:
-                    continue
-            self.network_table[reading_value][reading_value] = r.uniform(
-                lower_bound, upper_bound
-            )
-            self.network_table[reading_value][node] = self.network_table[second_node][
-                node
-            ]
-            self.network_table[second_node][reading_value] = 1
-            self.network_table[second_node][node] = None
+            rv += 1
+            self._wire_node_complex(rv, lower_bound, upper_bound)
             self._rebuild_node_graph()
 
     def create_new_connection(self, mutability: int = 1) -> None:
-        if mutability == 1:
-            variability = r.uniform(0, 0.2)
-        elif mutability == 2:
-            variability = r.uniform(0.2, 0.4)
-        elif mutability == 3:
-            variability = r.uniform(0.4, 0.6)
-        elif mutability == 4:
-            variability = r.uniform(0.6, 0.8)
-        elif mutability == 5:
-            variability = r.uniform(0.8, 1)
-        lower_bound = 0 - variability
-        upper_bound = 0 + variability
+        _ranges = [(0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
+        variability = r.uniform(*_ranges[mutability - 1])
+        lower_bound = -variability
+        upper_bound = variability
         sum = 0
         if len(self.levels) == 0:
             return

@@ -247,6 +247,53 @@ class TestNetwork:
         assert len(compacted) == n - 1
         assert all(len(row) == n - 1 for row in compacted)
 
+    # --- Phase 11: decomposed helper tests ---
+
+    def test_wire_node_primitive_creates_incoming_and_outgoing_connections(self):
+        random.seed(42)
+        net = Network(3, 1, [])
+        rv = net.begins[-1] + 1
+        net.network_table = net._expand_table(rv)
+        net.number_of_nodes += 1
+        for i in range(len(net.ends)):
+            net.ends[i] += 1
+        net._wire_node_primitive(rv, -0.5, 0.5)
+        net.levels.append(rv)
+        net._rebuild_node_graph()
+        has_incoming = any(net.network_table[i][rv] is not None for i in range(rv))
+        has_outgoing = any(net.network_table[rv][j] is not None for j in net.ends)
+        assert has_incoming
+        assert has_outgoing
+
+    def test_wire_node_complex_creates_incoming_and_outgoing_connections(self):
+        random.seed(42)
+        net = Network(3, 1, [])
+        net.create_new_node()
+        rv = net.begins[-1]
+        net.network_table = net._expand_table(rv + 1)
+        net.number_of_nodes += 1
+        net.levels.append(net.levels[-1] + 1)
+        for i in range(len(net.ends)):
+            net.ends[i] += 1
+        rv += 1
+        net._wire_node_complex(rv, -0.5, 0.5)
+        net._rebuild_node_graph()
+        has_incoming = any(net.network_table[i][rv] is not None for i in range(rv))
+        has_outgoing = any(net.network_table[rv][j] is not None for j in range(rv + 1, net.number_of_nodes))
+        assert has_incoming
+        assert has_outgoing
+
+    def test_find_node_neighbors_upstream_and_downstream(self):
+        random.seed(42)
+        net = Network(3, 1, [])
+        net.create_new_node()
+        level = net.levels[0]
+        upstream, downstream = net._find_node_neighbors(level)
+        assert all(u < level for u in upstream)
+        assert all(d > level for d in downstream)
+        assert len(upstream) > 0
+        assert len(downstream) > 0
+
     def test_mutate_network_preserves_none_positions(self):
         random.seed(7)
         net = Network(3, 1, [])
