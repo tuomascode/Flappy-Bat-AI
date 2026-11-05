@@ -23,27 +23,7 @@ _ARROW_DOT_R = 5
 _UP_COLOUR = (80, 190, 230)
 _DOWN_COLOUR = (220, 110, 60)
 
-_BAR_W = 90
-_BAR_H = 11
-_BAR_BG = (45, 45, 45)
-_SCORE_BAR_COLOUR = (80, 190, 230)
-_BATS_BAR_COLOUR = (120, 200, 100)
-
 _TEXT = "text"
-_BAR = "bar"
-
-
-def _draw_bar(
-    screen: pygame.Surface,
-    x: int,
-    y: int,
-    ratio: float,
-    colour: tuple[int, int, int],
-) -> None:
-    pygame.draw.rect(screen, _BAR_BG, (x, y, _BAR_W, _BAR_H), border_radius=3)
-    fill = int(min(1.0, max(0.0, ratio)) * _BAR_W)
-    if fill:
-        pygame.draw.rect(screen, colour, (x, y, fill, _BAR_H), border_radius=3)
 
 
 def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
@@ -90,7 +70,6 @@ def _draw_frame(
     generation: int,
     score: int,
     featured_bat: object | None = None,
-    initial_bat_count: int = 1,
 ) -> None:
     screen.fill((100, 100, 100))
 
@@ -107,14 +86,11 @@ def _draw_frame(
     if featured_bat is not None:
         _draw_output_arrow(screen, featured_bat)
 
-    score_ratio = score / max(best_score, 1.0)
-    bats_ratio = len(bats) / max(initial_bat_count, 1)
-
     rows: list[tuple[str, str, str, tuple[int, int, int]]] = [
         (_TEXT, "Generation", str(generation),                        _VALUE_COLOUR),
-        (_BAR,  "Score",      str(score_ratio),                       _SCORE_BAR_COLOUR),
+        (_TEXT, "Score",      str(score),                             _VALUE_COLOUR),
         (_TEXT, "Best score", f"{best_score:.2f}",                    _BEST_COLOUR),
-        (_BAR,  "Bats alive", str(bats_ratio),                        _BATS_BAR_COLOUR),
+        (_TEXT, "Bats alive", str(len(bats)),                         _VALUE_COLOUR),
         (_TEXT, "Gap size",   f"{towers[0].hole_between_towers} px",  _VALUE_COLOUR),
     ]
 
