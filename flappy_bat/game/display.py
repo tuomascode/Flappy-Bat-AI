@@ -7,7 +7,7 @@ _LABEL_COLOUR = (160, 160, 160)
 _VALUE_COLOUR = (255, 255, 255)
 _BEST_COLOUR = (255, 210, 50)
 
-_PANEL_X = 12
+_PANEL_MARGIN = 12
 _PANEL_Y = 12
 _PANEL_W = 230
 _ROW_H = 28
@@ -118,18 +118,19 @@ def _draw_frame(
         (_TEXT, "Gap size",   f"{towers[0].hole_between_towers} px",  _VALUE_COLOUR),
     ]
 
+    panel_x = screen.get_width() - _PANEL_W - _PANEL_MARGIN
     panel_h = _ROW_H * len(rows) + _PADDING_X
     panel = pygame.Surface((_PANEL_W, panel_h), pygame.SRCALPHA)
     panel.fill(_PANEL_COLOUR)
-    screen.blit(panel, (_PANEL_X, _PANEL_Y))
+    screen.blit(panel, (panel_x, _PANEL_Y))
 
     font_label = pygame.font.SysFont("Arial", 15)
     font_value = pygame.font.SysFont("Arial", 18, bold=True)
 
     for idx, (kind, label, val, colour) in enumerate(rows):
         y = _PANEL_Y + idx * _ROW_H + _PADDING_X // 2
-        screen.blit(font_label.render(label, True, _LABEL_COLOUR), (_PANEL_X + _PADDING_X, y + 3))
+        screen.blit(font_label.render(label, True, _LABEL_COLOUR), (panel_x + _PADDING_X, y + 3))
         if kind == _TEXT:
-            screen.blit(font_value.render(val, True, colour), (_PANEL_X + _VALUE_X, y))
+            screen.blit(font_value.render(val, True, colour), (panel_x + _VALUE_X, y))
         else:
-            _draw_bar(screen, _PANEL_X + _VALUE_X, y + 4, float(val), colour)
+            _draw_bar(screen, panel_x + _VALUE_X, y + 4, float(val), colour)
