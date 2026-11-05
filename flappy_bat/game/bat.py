@@ -20,6 +20,7 @@ class Bat:
         self.x = 60
         self.network = network
         self.acceleration = 0
+        self.last_output: float = 0.0
 
     def _load_images(self) -> None:
         if not self._images_loaded:
@@ -58,6 +59,7 @@ class Bat:
             ]
         )
 
+        self.last_output = network_output[0]
         self.acceleration += network_output[0] * ACCEL_SCALE
         self.speed += self.acceleration
         self.y += self.speed

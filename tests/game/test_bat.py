@@ -47,6 +47,17 @@ class TestBatInit:
         bat = Bat(net)
         assert bat.network is net
 
+    def test_last_output_zero_at_init(self):
+        bat = Bat(MockNetwork())
+        assert bat.last_output == 0.0
+
+    def test_last_output_updated_after_move(self):
+        seed(0)
+        towers = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
+        bat = Bat(MockNetwork(output=0.7))
+        bat.move_bat(towers, SCREEN_HEIGHT)
+        assert bat.last_output == pytest.approx(0.7)
+
 
 class TestBatCheckImpact:
     def setup_method(self):

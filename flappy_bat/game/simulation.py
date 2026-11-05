@@ -1,4 +1,4 @@
-from random import seed
+from random import seed, choice
 
 import pygame
 
@@ -18,7 +18,12 @@ from flappy_bat.game.evaluation import quick_score
 
 
 def run_simulation(
-    bats_to_run: list[Bat], best_score: float, generation: int, *, display: bool
+    bats_to_run: list[Bat],
+    best_score: float,
+    generation: int,
+    *,
+    display: bool,
+    featured_network: Network | None = None,
 ) -> list[tuple[Bat, float]]:
     # Seed is set to 1 because it produces a hard obstacle in the beginning of the course.
     # Better to find one network that can actually react to obstacles than randomly easy ones
@@ -42,6 +47,16 @@ def run_simulation(
 
     removed_bats = []
     score = 0
+
+    # Pick the bat to track for the output arrow
+    if display:
+        tracked_bat: Bat | None = next(
+            (b for b in bats_to_run if b.network is featured_network), None
+        ) if featured_network is not None else None
+        if tracked_bat is None and bats_to_run:
+            tracked_bat = choice(bats_to_run)
+    else:
+        tracked_bat = None
 
     while True:
         for event in pygame.event.get():
@@ -91,7 +106,9 @@ def run_simulation(
             removed_bats.append((bat, score - mistake_value))
 
         if display:
-            _draw_frame(screen, towers, bats_to_run, best_score, generation, score)
+            if tracked_bat not in bats_to_run:
+                tracked_bat = choice(bats_to_run) if bats_to_run else None
+            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat)
             pygame.display.flip()
             clock.tick(tickrate)
 
@@ -129,7 +146,9 @@ def main() -> None:
 
     while True:
         counter += 1
-        results_of_simulation = run_simulation(bat_list, best_score, counter, display=True)
+        results_of_simulation = run_simulation(
+            bat_list, best_score, counter, display=True, featured_network=best_bat_network
+        )
         results_of_simulation.sort(reverse=True, key=lambda x: x[1])
 
         # Reset seed so network evolution works. Seed is set to 1 in the actual game to shape the obstacle course.
