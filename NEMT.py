@@ -1,46 +1,54 @@
+from __future__ import annotations
 
 import random as r
 from math import tanh
-class Node():
-    def __init__(self,index,weight):
-        self.index=index
-        self.back_neighbours=[]
-        self.factors=[]
-        self.weight=weight
-    def append_neighbour(self,neighbour,factor):
+
+_WEIGHT_INIT_RANGE = (-1.0, 1.0)  # initial connection weights
+_BIAS_INIT_RANGE   = (-2.0, 2.0)  # output node bias
+
+
+class Node:
+    def __init__(self, index: int, weight: float | None) -> None:
+        self.index = index
+        self.back_neighbours: list[Node] = []
+        self.factors: list[float] = []
+        self.weight = weight
+
+    def append_neighbour(self, neighbour: Node, factor: float) -> None:
         self.factors.append(factor)
         self.back_neighbours.append(neighbour)
-    def solve_network_output(self):
-        sum=self.weight
-        if len(self.back_neighbours)==0:
+
+    def solve_network_output(self) -> float:
+        sum = self.weight
+        if len(self.back_neighbours) == 0:
             return sum
         else:
             for i in range(len(self.back_neighbours)):
-                value=self.back_neighbours[i].solve_network_output()
+                value = self.back_neighbours[i].solve_network_output()
                 try:
-                    sum+=(value*self.factors[i])
-                except:
-       
+                    sum += (value * self.factors[i])
+                except (TypeError, OverflowError):
                     raise ValueError
             return tanh(sum)
+
 
 class Network:
     #The basic functionality of the network is in this class.
     #The class offers functions for creating networks and mutating them in various ways.
     #The class also provides with basic checking functions that ensure, that mutation functions don't break the networks.
     #Write and read functions are also provided to save the network. Not sure why anyone would do this but here we are.
-    def __init__(self,input_nodes,output_nodes,table):
+    def __init__(self, input_nodes: int, output_nodes: int, table: list[list[float | None]]) -> None:
         if len(table)==0:
             self.number_of_nodes=input_nodes+output_nodes
-            self.levels=[]
+            self.levels: list[int] = []
             self.begins=[i for i in range(input_nodes)]
             self.ends=[i+input_nodes for i in range(output_nodes)]
             self.network_table=[[None for j in range(self.number_of_nodes)] for i in range(self.number_of_nodes)]
             for i in self.begins:
                 for j in self.ends:
-                    self.network_table[i][j]=r.uniform(-1, 1)
+                    self.network_table[i][j]=r.uniform(*_WEIGHT_INIT_RANGE)
             for i in self.ends:
-                self.network_table[i][i]=r.uniform(-2, 2)
+                self.network_table[i][i]=r.uniform(*_BIAS_INIT_RANGE)
             self.primitive=True
             self.id=r.randint(0,999999999)
             self.create_new_network()
@@ -58,7 +66,8 @@ class Network:
             self.ends=[value for value in range(len(self.begins)+len(self.levels),self.number_of_nodes)]
             self.network_table=table
             self.create_new_network()
-    def create_new_network(self):
+
+    def create_new_network(self) -> None:
         self.nodes=[]
         for i in self.begins:
             self.nodes.append(Node(i,self.network_table[i][i]))
@@ -70,7 +79,8 @@ class Network:
             for j in range(i-1,-1,-1):
                 if self.network_table[j][i]!=None:
                     self.nodes[i].append_neighbour(self.nodes[j],self.network_table[j][i])
-    def calculate_complexicity(self):
+
+    def calculate_complexity(self) -> int:
         sum=0
         sum+=self.number_of_nodes
         for i in range(len(self.network_table)-1):
@@ -78,14 +88,16 @@ class Network:
                 if self.network_table[i][j]!=None:
                     sum+=1
         return sum
-    def return_network_solution(self,input):
+
+    def return_network_solution(self, input: list[float]) -> list[float]:
         solutions=[]
         for index in self.begins:
             self.nodes[index].weight=input[index]
         for i in self.ends:
             solutions.append(self.nodes[i].solve_network_output())
         return solutions
-    def remove_node(self):
+
+    def remove_node(self) -> None:
         node=r.choice(self.levels)
         new_table=[[self.network_table[i][j] for j in range(len(self.network_table))]for i in range(len(self.network_table))]
         end_nodes=[]
@@ -119,23 +131,26 @@ class Network:
                         new_table_two[i][j]=new_table[i][j]
         self.network_table=new_table_two
         self.levels=self.levels[:-1]
+        if len(self.levels)==0:
+            self.primitive=True
         for i in range(len(self.ends)):
             self.ends[i]-=1
         self.number_of_nodes-=1
         self.create_new_network()
-    def create_new_node(self,mutability=1):
+
+    def create_new_node(self, mutability: int = 1) -> None:
         if mutability==1:
-            variablity=r.uniform(0,0.4)
+            variability=r.uniform(0,0.4)
         elif mutability==2:
-            variablity=r.uniform(0.4,0.8)
+            variability=r.uniform(0.4,0.8)
         elif mutability==3:
-            variablity=r.uniform(0.8,1.2)
+            variability=r.uniform(0.8,1.2)
         elif mutability==4:
-            variablity=r.uniform(1.2,1.6)
+            variability=r.uniform(1.2,1.6)
         elif mutability==5:
-            variablity=r.uniform(1.6,2)
-        lower_bound=0-variablity
-        upper_bound=0+variablity
+            variability=r.uniform(1.6,2)
+        lower_bound=0-variability
+        upper_bound=0+variability
         if len(self.levels)==0:
             self.primitive=False
             reading_value=self.begins[-1]+1
@@ -180,12 +195,12 @@ class Network:
             self.network_table=new_table
             while True:
                 node=r.randint(reading_value+1,self.ends[-1])
-                apunetwork_list=[]
+                candidate_sources=[]
                 for i in range(reading_value):
                     if self.network_table[i][node]!=None:
-                        apunetwork_list.append(i)
+                        candidate_sources.append(i)
                 try:
-                    second_node=r.choice(apunetwork_list)
+                    second_node=r.choice(candidate_sources)
                     break
                 except: continue
             self.network_table[reading_value][reading_value]=r.uniform(lower_bound,upper_bound)
@@ -193,19 +208,20 @@ class Network:
             self.network_table[second_node][reading_value]=1
             self.network_table[second_node][node]=None
             self.create_new_network()
-    def create_new_connection(self,mutability=1):
+
+    def create_new_connection(self, mutability: int = 1) -> None:
         if mutability==1:
-            variablity=r.uniform(0,0.2)
+            variability=r.uniform(0,0.2)
         elif mutability==2:
-            variablity=r.uniform(0.2,0.4)
+            variability=r.uniform(0.2,0.4)
         elif mutability==3:
-            variablity=r.uniform(0.4,0.6)
+            variability=r.uniform(0.4,0.6)
         elif mutability==4:
-            variablity=r.uniform(0.6,0.8)
+            variability=r.uniform(0.6,0.8)
         elif mutability==5:
-            variablity=r.uniform(0.8,1)
-        lower_bound=0-variablity
-        upper_bound=0+variablity
+            variability=r.uniform(0.8,1)
+        lower_bound=0-variability
+        upper_bound=0+variability
         sum=0
         if len(self.levels)==0:
             return
@@ -237,7 +253,8 @@ class Network:
                     else:
                         index+=1
         self.create_new_network()
-    def check_connection(self):
+
+    def check_connection(self) -> bool:
         if len(self.levels)==0:
             return False
         for j in range(0,len(self.network_table)-1):
@@ -247,7 +264,8 @@ class Network:
                 if self.network_table[j][i]==None:
                     return True
         return False
-    def check_for_connection_removal(self):
+
+    def check_for_connection_removal(self) -> bool:
         for i in range(len(self.network_table)):
             connections=0
             for j in range(i+1,len(self.network_table)):
@@ -258,7 +276,8 @@ class Network:
             if connections>=2:
                 return True
         return False
-    def remove_connection(self):
+
+    def remove_connection(self) -> None:
         if not self.check_for_connection_removal():
             return
         removals=[]
@@ -271,13 +290,13 @@ class Network:
                     connections.append((i,j))
             for i in connections:
                 removals.append(i)
-        poisto=r.choice(removals)
+        removal=r.choice(removals)
         new_table=[[self.network_table[i][j] for j in range(len(self.network_table))] for i in range(len(self.network_table))]
-        
-        new_table[poisto[0]][poisto[1]]=None
+        new_table[removal[0]][removal[1]]=None
         self.network_table=new_table
         self.create_new_network()
-    def mutate_network(self,rate):
+
+    def mutate_network(self, rate: int) -> None:
         if rate==1:
             network_list=[i for i in range(100)]
         elif rate==2:
@@ -288,9 +307,9 @@ class Network:
             network_list=[i for i in range(40)]
         elif rate==5:
             network_list=[i for i in range(20)]
-        variablity=rate*0.03
-        lower_bound=1-variablity
-        upper_bound=1+variablity
+        variability=rate*0.03
+        lower_bound=1-variability
+        upper_bound=1+variability
         new_table=[[None for j in range(len(self.network_table))] for i in range(len(self.network_table))]
         for index,network_list in enumerate(self.network_table):
             for jindex,value in enumerate(network_list):
@@ -302,15 +321,17 @@ class Network:
                         new_table[index][jindex]*=r.uniform(lower_bound,upper_bound)
         self.network_table=new_table
         self.create_new_network()
-    def return_mutated_network(neural_network,maara,rate):
+
+    @staticmethod
+    def return_mutated_network(neural_network: Network, count: int, rate: int) -> list[Network]:
         network_table=[]
-        for i in range(maara):
-            # print(neural_network.begins[-1]+1)
+        for i in range(count):
             network_table.append(Network(neural_network.begins[-1]+1,len(neural_network.ends),neural_network.network_table))
         for i in range(len(network_table)):
             network_table[i].mutate_network(rate)
         return network_table
-    def write(self,filename):
+
+    def write(self, filename: str) -> None:
         with open(filename,"w") as file:
             for i in self.network_table:
                 write_string=""
@@ -322,7 +343,9 @@ class Network:
                 file.write(write_string)
             file.write((str(len(self.begins))+"\n"))
             file.write(str(len(self.ends)))
-    def read_and_return(filename):
+
+    @staticmethod
+    def read_and_return(filename: str) -> Network:
         network_list=[]
         index=0
         with open(filename) as file:
@@ -335,7 +358,7 @@ class Network:
                         network_list[index].append(None)
                     else:
                         network_list[index].append(float(k))
-                    
+
                 index+=1
         input_nodes=int(network_list[-2][0])
         output_nodes=int(network_list[-1][0])
@@ -347,14 +370,15 @@ class Evolution:
     # 1. create_new_networks gives you the new networks with the number of input and output nodes you wish to have.
     # 2. Evolve networks takes in a network and spits out as many networks as you wish.
     # 3. Read and return can be used to read a network from a textfile
-    def __init__(self):
+    def __init__(self) -> None:
         self.mutatibility=5
-    def create_new_networks(self,first_order_nodes,end_nodes,complexity_factor=1.1,connection_factor=1.2,number_of_networks=1):
+
+    def create_new_networks(self, first_order_nodes: int, end_nodes: int, complexity_factor: float = 1.1, connection_factor: float = 1.2, number_of_networks: int = 1) -> list[Network]:
         list_of_networks=[]
         for i in range(number_of_networks):
             possible_connections=0
             neural_network=Network(first_order_nodes,end_nodes,[])
-            complexity_now=neural_network.calculate_complexicity()
+            complexity_now=neural_network.calculate_complexity()
             complexity=complexity_now*complexity_factor
             connections=0
             while complexity_now<complexity:
@@ -365,12 +389,12 @@ class Evolution:
                 else:
                     connectivity_relation=connections/possible_connections
                     if connectivity_relation>connection_factor:
-                
+
                         connections+=1
                         possible_connections+=first_order_nodes+len(neural_network.levels)
                         neural_network.create_new_node(r.randint(1,5))
                     else:
-       
+
                         if neural_network.check_connection():
                             neural_network.create_new_connection(r.randint(1,5))
                             connections+=1
@@ -378,12 +402,14 @@ class Evolution:
                             connections+=1
                             possible_connections+=first_order_nodes+len(neural_network.levels)
                             neural_network.create_new_node(r.randint(1,5))
-                complexity_now=neural_network.calculate_complexicity()
+                complexity_now=neural_network.calculate_complexity()
             list_of_networks.append(neural_network)
         return list_of_networks
-    def read_and_return(self,filename):
+
+    def read_and_return(self, filename: str) -> Network:
         return Network.read_and_return(filename)
-    def evolve_networks(self,neural_network,complexity=2,mutation_rate=2,amount_of_networks=1):
+
+    def evolve_networks(self, neural_network: Network, complexity: int = 2, mutation_rate: int = 2, amount_of_networks: int = 1) -> list[Network]:
 
         #Hello fellow programmer! You've made it this far, for which I congratulate you!
         #However, I'm going to be perfectly honest here. I wrote this code in the summer of 2022, when I had approximately
@@ -393,7 +419,7 @@ class Evolution:
         #however, trying to work the workings of this code post-familiarity is beyond me.
 
         #So if you are reading this, I solemnly sweat that I have improved my commenting habits!
-    
+
 
         if complexity==0:
             network_list=Network.return_mutated_network(neural_network,amount_of_networks,r.randint(1,5))
@@ -403,18 +429,18 @@ class Evolution:
             if len(neural_network.levels)==0:
                 mutation_factor=1
             else:
-                mutation_factor=(neural_network.calculate_complexicity()-neural_network.number_of_nodes)/len(neural_network.levels)+addition_value
+                mutation_factor=(neural_network.calculate_complexity()-neural_network.number_of_nodes)/len(neural_network.levels)+addition_value
             network_list=[]
             for i in range(amount_of_networks):
                 network_list.append(Network(neural_network.begins[-1]+1,len(neural_network.ends),neural_network.network_table))
-           
+
             for i in range(len(network_list)):
-                if r.randint(0,1)==1: 
+                if r.randint(0,1)==1:
                     for k in range(complexity):
                         if len(network_list[i].levels)==0:
                             network_list[i].create_new_node(mutation_rate)
                             continue
-                        if (network_list[i].calculate_complexicity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
+                        if (network_list[i].calculate_complexity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
                             network_list[i].create_new_node(mutation_rate)
                         else:
                             network_list[i].create_new_connection(mutation_rate)
@@ -423,7 +449,7 @@ class Evolution:
                         if len(network_list[i].levels)==0:
                             network_list[i].remove_connection()
                             continue
-                        if (network_list[i].calculate_complexicity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
+                        if (network_list[i].calculate_complexity()-network_list[i].number_of_nodes)/len(network_list[i].levels)>=mutation_factor:
                             network_list[i].remove_connection()
                         else:
                             network_list[i].remove_node()
@@ -432,17 +458,7 @@ class Evolution:
         return network_list
 
 
-
-            
-
-        
-
-        
-
-
-
-
-def main():
+def main() -> None:
     verkot=[Network(49,1,[]),Network(49,1,[])]
     network_list=[]
     print(network_list)
