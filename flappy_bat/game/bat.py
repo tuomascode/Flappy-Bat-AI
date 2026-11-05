@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from random import randint
-
 import pygame
 
 from flappy_bat.constants import ACCEL_SCALE, ASSETS_DIR
@@ -24,7 +22,7 @@ class Bat:
 
     def _load_images(self) -> None:
         if not self._images_loaded:
-            if randint(0, 1) == 1:
+            if self.network.id % 2 == 1:
                 self.bat1 = pygame.image.load(str(ASSETS_DIR / "flap1.png"))
                 self.bat2 = pygame.image.load(str(ASSETS_DIR / "flap2.png"))
             else:

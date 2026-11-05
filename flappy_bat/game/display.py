@@ -80,11 +80,15 @@ def _draw_frame(
 ) -> None:
     screen.fill((100, 100, 100))
 
-    for tower in towers:
+    font_tower = pygame.font.SysFont("Arial", 20, bold=True)
+    for idx, tower in enumerate(towers):
         pygame.draw.rect(screen, (0, 0, 0), tower.get_upper_boarder_sizepos(), border_radius=10)
         pygame.draw.rect(screen, (0, 0, 0), tower.get_lower_boarder_sizepos(), border_radius=10)
         pygame.draw.rect(screen, tower.get_color(), tower.get_lower_sizepos(), border_radius=10)
         pygame.draw.rect(screen, tower.get_color(), tower.get_upper_sizepos(), border_radius=10)
+        pos, size = tower.get_lower_sizepos()
+        label = font_tower.render(str(score + 1 + idx), True, (255, 255, 255))
+        screen.blit(label, (pos[0] + (size[0] - label.get_width()) // 2, pos[1] + 8))
 
     for bat in bats:
         bat._load_images()

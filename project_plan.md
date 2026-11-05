@@ -154,15 +154,6 @@ class GameState:
 
 `run_simulation` accepts an optional `GameState`. Prerequisite for Feature C.
 
----
-
-### Feature C — Initial candidate selection via structured tests
-
-Replace the full-game viable-candidate search with a `quick_score(network)` 
-function in a new `evaluation.py`. Runs the network against fixed
-`GameState` input scenarios (no pygame) and returns a rough fitness estimate.
-Pre-filters the initial population before full game evaluation.
-
 **Prerequisite:** Feature B.
 
 ---

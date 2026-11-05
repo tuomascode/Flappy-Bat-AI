@@ -12,7 +12,7 @@ TOWER_SPACING = 200
 TOWER_GAP_MAX = 325
 TOWER_GAP_MIN = 135
 TOWER_BOUNDARY = 30
-TOWER_DIFFICULTY_RATE = 8   # frames per 1 px gap reduction (lower = harder faster)
+TOWER_DIFFICULTY_RATE = 10   # frames per 1 px gap reduction (lower = harder faster)
 ACCEL_SCALE = 0.025
 POPULATION_SIZE = 100
 STAGNATION_LIMIT = 10
