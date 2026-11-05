@@ -76,6 +76,7 @@ def _draw_frame(
     generation: int,
     score: int,
     featured_bat: object | None = None,
+    tickrate: int = 0,
 ) -> None:
     screen.fill((100, 100, 100))
 
@@ -98,6 +99,7 @@ def _draw_frame(
         (_TEXT, "Best score", f"{best_score:.2f}",                    _BEST_COLOUR),
         (_TEXT, "Bats alive", str(len(bats)),                         _VALUE_COLOUR),
         (_TEXT, "Gap size",   f"{towers[0].hole_between_towers} px",  _VALUE_COLOUR),
+        (_TEXT, "Tickrate",   "uncapped" if tickrate == 0 else f"{tickrate} fps", _VALUE_COLOUR),
     ]
 
     panel_x = screen.get_width() - _PANEL_W - _PANEL_MARGIN
