@@ -115,7 +115,7 @@ def _initial_bat_list(n: int) -> list[Bat]:
 
 def _reset_search() -> tuple[None, float, int, int, list[Bat]]:
     print("Stagnated, resetting the search")
-    return (None, 0.0, STAGNATION_LIMIT, 0, _initial_bat_list(POPULATION_SIZE * 2))
+    return (None, 0.0, STAGNATION_LIMIT, 0, _initial_bat_list(POPULATION_SIZE))
 
 
 def main() -> None:
@@ -123,7 +123,7 @@ def main() -> None:
     best_bat_network = None
     evolution_object = Evolution()
 
-    bat_list = _initial_bat_list(POPULATION_SIZE * 2)
+    bat_list = _initial_bat_list(POPULATION_SIZE)
     counter = 0
     reset_value = STAGNATION_LIMIT
 
