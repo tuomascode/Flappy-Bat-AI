@@ -27,10 +27,24 @@ _NEUTRAL_COLOUR = (180, 180, 180)
 
 _TEXT = "text"
 _END_HEADER_COLOUR = (200, 200, 255)
+_WIN_TEXT_COLOUR = (255, 215, 0)
+_WIN_BACKING_COLOUR = (0, 0, 0, 160)
 _REC_COLOUR = (220, 50, 50)
 _REC_DOT_R = 6
 _REC_X = 14
 _REC_Y = 14
+
+
+def _draw_win_overlay(screen: pygame.Surface) -> None:
+    font = pygame.font.SysFont("Arial", 80, bold=True)
+    text = font.render("YOU WIN", True, _WIN_TEXT_COLOUR)
+    x = (screen.get_width() - text.get_width()) // 2
+    y = (screen.get_height() - text.get_height()) // 2
+    pad = 20
+    backing = pygame.Surface((text.get_width() + pad * 2, text.get_height() + pad * 2), pygame.SRCALPHA)
+    backing.fill(_WIN_BACKING_COLOUR)
+    screen.blit(backing, (x - pad, y - pad))
+    screen.blit(text, (x, y))
 
 
 def _draw_rec_indicator(screen: pygame.Surface) -> None:
@@ -116,6 +130,7 @@ def _draw_frame(
     tickrate: int = 0,
     end_stats: list[tuple[str, str]] | None = None,
     recording: bool = False,
+    win: bool = False,
 ) -> None:
     screen.fill((100, 100, 100))
 
@@ -162,6 +177,8 @@ def _draw_frame(
         else:
             _draw_bar(screen, panel_x + _VALUE_X, y + 4, float(val), colour)
 
+    if win:
+        _draw_win_overlay(screen)
     if end_stats is not None:
         _draw_end_panel(screen, end_stats)
     if recording:

@@ -1,0 +1,10 @@
+None;None;None;None;None;None;None;-1.065496959736627
+None;None;None;None;None;None;None;0.38383756288186127
+None;None;None;None;None;None;None;0.8817030422107959
+None;None;None;None;None;None;None;-0.1377012003871572
+None;None;None;None;None;None;None;-0.1558518796813649
+None;None;None;None;None;None;None;-0.26466806716206737
+None;None;None;None;None;None;None;0.3611296354252424
+None;None;None;None;None;None;None;0.2500181187957825
+7
+1

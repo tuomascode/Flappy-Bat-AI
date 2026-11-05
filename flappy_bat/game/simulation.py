@@ -1,5 +1,6 @@
 from random import seed
 import datetime
+import os
 import subprocess
 
 import pygame
@@ -21,6 +22,14 @@ from flappy_bat.game.evaluation import quick_score
 _ADAPTIVE_HIGH_BATS = 8    # above this: uncapped speed
 _SLOW_TICKRATE = 90
 _RECORD_FPS = 60
+_WIN_SCORE = 100
+_GAUNTLET_START = 81      # first pillar with forced gap position
+
+
+def _gauntlet_gap(label: int) -> str:
+    if label < _GAUNTLET_START:
+        return "random"
+    return "top" if label % 2 == 1 else "bottom"
 
 
 def _start_recorder(screen: pygame.Surface) -> subprocess.Popen | None:
@@ -88,6 +97,7 @@ def run_simulation(
     display: bool,
     featured_network: Network | None = None,
     prev_round_stats: list[tuple[str, str]] | None = None,
+    auto_record: bool = False,
 ) -> list[tuple[Bat, float]]:
     # Seed is set to 1 because it produces a hard obstacle in the beginning of the course.
     # Better to find one network that can actually react to obstacles than randomly easy ones
@@ -100,7 +110,7 @@ def run_simulation(
     clock = pygame.time.Clock()
     tickrate = 0
     adaptive = False
-    recorder: subprocess.Popen | None = None
+    recorder: subprocess.Popen | None = _start_recorder(screen) if auto_record else None
 
     # Define towers and adjust the positions for the start
     towers = [Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer) for _ in range(3)]
@@ -113,6 +123,7 @@ def run_simulation(
 
     removed_bats = []
     score = 0
+    won = False
 
     # Pick the bat to track for the output arrow
     if display:
@@ -137,7 +148,7 @@ def run_simulation(
                     tickrate = 0
                 if event.key == pygame.K_c:
                     adaptive = True
-                if event.key == pygame.K_r:
+                if event.key == pygame.K_r and not auto_record:
                     if recorder is None:
                         recorder = _start_recorder(screen)
                     else:
@@ -151,7 +162,7 @@ def run_simulation(
         if len(bats_to_run) == 0:
             if display:
                 end_stats = _compute_round_stats(removed_bats)
-                _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=end_stats, recording=recorder is not None)
+                _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=end_stats, recording=recorder is not None, win=won)
                 pygame.display.flip()
                 if recorder is not None:
                     _write_frame(recorder, screen)
@@ -164,11 +175,17 @@ def run_simulation(
             tower.move()
             if tower.check_if_tower_passed():
                 deletion_value = tower
-                towers.append(Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer))
 
         if deletion_value is not None:
             towers.remove(deletion_value)
             score += 1
+            if score >= _WIN_SCORE:
+                won = True
+                for bat in bats_to_run:
+                    removed_bats.append((bat, float(_WIN_SCORE) * 0.01))
+                bats_to_run.clear()
+            else:
+                towers.append(Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer, gap=_gauntlet_gap(score + 3)))
 
         # Move each bat and collect any that hit something
         for bat in bats_to_run:
@@ -199,7 +216,7 @@ def run_simulation(
                     tickrate = _SLOW_TICKRATE
             if tracked_bat not in bats_to_run:
                 tracked_bat = bats_to_run[0] if bats_to_run else None
-            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats, recording=recorder is not None)
+            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats, recording=recorder is not None, win=won)
             pygame.display.flip()
             if recorder is not None:
                 _write_frame(recorder, screen)
@@ -223,17 +240,35 @@ def _initial_bat_list(n: int) -> list[Bat]:
     return bats
 
 
+def _save_network(network: Network, path: str) -> None:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    network.write(path)
+    print(f"Saved best network → {path}")
+
+
 def _reset_search() -> tuple[None, float, int, int, list[Bat]]:
     print("Stagnated, resetting the search")
     return (None, 0.0, STAGNATION_LIMIT, 0, _initial_bat_list(POPULATION_SIZE))
 
 
-def main() -> None:
+def main(
+    save_path: str | None = None,
+    load_path: str | None = None,
+    auto_record: bool = False,
+) -> None:
     best_score = 0.0
-    best_bat_network = None
     evolution_object = Evolution()
 
-    bat_list = _initial_bat_list(POPULATION_SIZE)
+    if load_path is not None:
+        print(f"Loading network from {load_path}")
+        best_bat_network: Network | None = Network.read_and_return(load_path)
+        evolved = evolution_object.evolve_networks(best_bat_network, amount_of_networks=POPULATION_SIZE // 2)
+        evolved += evolution_object.evolve_networks(best_bat_network, complexity=0, amount_of_networks=POPULATION_SIZE // 2)
+        bat_list = [Bat(best_bat_network)] + [Bat(n) for n in evolved]
+    else:
+        best_bat_network = None
+        bat_list = _initial_bat_list(POPULATION_SIZE)
+
     counter = 0
     reset_value = STAGNATION_LIMIT
     prev_round_stats = None
@@ -242,7 +277,7 @@ def main() -> None:
         counter += 1
         results_of_simulation = run_simulation(
             bat_list, best_score, counter, display=True, featured_network=best_bat_network,
-            prev_round_stats=prev_round_stats,
+            prev_round_stats=prev_round_stats, auto_record=auto_record,
         )
         prev_round_stats = _compute_round_stats(results_of_simulation)
         results_of_simulation.sort(reverse=True, key=lambda x: x[1])
@@ -253,6 +288,8 @@ def main() -> None:
         if best_bat_network is None or results_of_simulation[0][1] > best_score:
             best_bat_network = results_of_simulation[0][0].network
             best_score = results_of_simulation[0][1]
+            if save_path is not None:
+                _save_network(best_bat_network, save_path)
         else:
             reset_value -= 1
 

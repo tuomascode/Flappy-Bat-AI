@@ -12,15 +12,20 @@ from flappy_bat.constants import (
 
 
 class Towers:
-    def __init__(self, x: int, y: int, reducer: int) -> None:
+    def __init__(self, x: int, y: int, reducer: int, gap: str = "random") -> None:
         # Reducer will grow as the game goes on to make the gaps between towers smaller
         self.hole_between_towers = TOWER_GAP_MAX - reducer // TOWER_DIFFICULTY_RATE
         if self.hole_between_towers < TOWER_GAP_MIN:
             self.hole_between_towers = TOWER_GAP_MIN
 
-        self.lower_boundary = randint(
-            self.hole_between_towers + TOWER_BOUNDARY, y - TOWER_BOUNDARY
-        )
+        min_lower = self.hole_between_towers + TOWER_BOUNDARY
+        max_lower = y - TOWER_BOUNDARY
+        if gap == "top":
+            self.lower_boundary = min_lower
+        elif gap == "bottom":
+            self.lower_boundary = max_lower
+        else:
+            self.lower_boundary = randint(min_lower, max_lower)
         self.color = 107, 81, 79
 
         # Position of the floortower
