@@ -20,8 +20,10 @@ _ARROW_MIN_LEN = 14
 _ARROW_HEAD = 12
 _ARROW_SHAFT_W = 6
 _ARROW_DOT_R = 5
+_ARROW_THRESHOLD = 0.15
 _UP_COLOUR = (80, 190, 230)
 _DOWN_COLOUR = (220, 110, 60)
+_NEUTRAL_COLOUR = (180, 180, 180)
 
 _TEXT = "text"
 
@@ -34,6 +36,10 @@ def _draw_output_arrow(screen: pygame.Surface, featured_bat: object) -> None:
     bat_h: float = getattr(featured_bat, "height", 0.0)
     mid_y = int(bat_y + bat_h / 2)
     mid_y = max(_ARROW_HEAD + _ARROW_MAX_LEN, min(h - _ARROW_HEAD - _ARROW_MAX_LEN, mid_y))
+
+    if abs(output) < _ARROW_THRESHOLD:
+        pygame.draw.circle(screen, _NEUTRAL_COLOUR, (_ARROW_X, mid_y), _ARROW_DOT_R)
+        return
 
     shaft = int(_ARROW_MIN_LEN + (_ARROW_MAX_LEN - _ARROW_MIN_LEN) * min(1.0, abs(output)))
     colour = _UP_COLOUR if output < 0 else _DOWN_COLOUR
