@@ -1,4 +1,4 @@
-from random import seed, choice
+from random import seed
 
 import pygame
 
@@ -77,7 +77,7 @@ def run_simulation(
             (b for b in bats_to_run if b.network is featured_network), None
         ) if featured_network is not None else None
         if tracked_bat is None and bats_to_run:
-            tracked_bat = choice(bats_to_run)
+            tracked_bat = bats_to_run[0]
     else:
         tracked_bat = None
 
@@ -146,7 +146,7 @@ def run_simulation(
                 else:
                     tickrate = _SLOW_TICKRATE
             if tracked_bat not in bats_to_run:
-                tracked_bat = choice(bats_to_run) if bats_to_run else None
+                tracked_bat = bats_to_run[0] if bats_to_run else None
             _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats)
             pygame.display.flip()
             clock.tick(tickrate)
