@@ -15,19 +15,19 @@ from flappy_bat.constants import SCREEN_HEIGHT
 
 
 def _build_net(bat_pos_w: float, speed_w: float, bias: float = 0.0) -> Network:
-    """Minimal 5→1 network with specific bat-position and speed weights."""
-    net = Network(5, 1, [])
+    """Minimal 7→1 network with specific bat-position and speed weights."""
+    net = Network(7, 1, [])
     net.network_table[:] = np.nan
-    net.network_table[0][5] = bat_pos_w
-    net.network_table[3][5] = speed_w
-    net.network_table[5][5] = bias
+    net.network_table[0][7] = bat_pos_w
+    net.network_table[3][7] = speed_w
+    net.network_table[7][7] = bias
     net._rebuild_node_graph()
     return net
 
 
 class TestMakeInputs:
     def test_length(self):
-        assert len(_make_inputs(400, 0.0)) == 5
+        assert len(_make_inputs(400, 0.0)) == 7
 
     def test_bat_at_cap_relative_position(self):
         inputs = _make_inputs(_CAP_Y, 0.0)
@@ -50,7 +50,7 @@ class TestMakeInputs:
 
 class TestQuickScore:
     def test_returns_bool(self):
-        assert isinstance(quick_score(Network(5, 1, [])), bool)
+        assert isinstance(quick_score(Network(7, 1, [])), bool)
 
     def test_correct_weights_pass(self):
         # bat_pos_w=-5: dominant position signal (above cap -> positive, below -> negative)

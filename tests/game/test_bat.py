@@ -53,9 +53,10 @@ class TestBatInit:
 
     def test_last_output_updated_after_move(self):
         seed(0)
-        towers = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
+        tower = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
+        next_tower = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
         bat = Bat(MockNetwork(output=0.7))
-        bat.move_bat(towers, SCREEN_HEIGHT)
+        bat.move_bat(tower, next_tower, SCREEN_HEIGHT)
         assert bat.last_output == pytest.approx(0.7)
 
 
@@ -111,46 +112,47 @@ class TestBatMoveBat:
     def setup_method(self):
         seed(0)
         self.tower = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
+        self.next_tower = Towers(SCREEN_WIDTH, SCREEN_HEIGHT, 0)
 
     def test_zero_output_no_movement(self):
         bat = Bat(MockNetwork(output=0.0))
         y_before = bat.y
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.y == y_before
         assert bat.speed == 0
         assert bat.acceleration == 0
 
     def test_positive_output_increases_acceleration(self):
         bat = Bat(MockNetwork(output=1.0))
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.acceleration == pytest.approx(ACCEL_SCALE)
 
     def test_negative_output_decreases_acceleration(self):
         bat = Bat(MockNetwork(output=-1.0))
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.acceleration == pytest.approx(-ACCEL_SCALE)
 
     def test_acceleration_accumulates_over_frames(self):
         bat = Bat(MockNetwork(output=1.0))
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.acceleration == pytest.approx(2 * ACCEL_SCALE)
 
     def test_speed_increases_with_positive_acceleration(self):
         bat = Bat(MockNetwork(output=1.0))
-        bat.move_bat(self.tower, SCREEN_HEIGHT)
+        bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.speed > 0
 
     def test_bat_moves_down_with_sustained_positive_output(self):
         bat = Bat(MockNetwork(output=1.0))
         y_before = bat.y
         for _ in range(10):
-            bat.move_bat(self.tower, SCREEN_HEIGHT)
+            bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.y > y_before
 
     def test_bat_moves_up_with_sustained_negative_output(self):
         bat = Bat(MockNetwork(output=-1.0))
         y_before = bat.y
         for _ in range(10):
-            bat.move_bat(self.tower, SCREEN_HEIGHT)
+            bat.move_bat(self.tower, self.next_tower, SCREEN_HEIGHT)
         assert bat.y < y_before

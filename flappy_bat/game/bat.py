@@ -32,28 +32,22 @@ class Bat:
             self.width = self.bat1.get_width()
             self._images_loaded = True
 
-    def move_bat(self, tower: "Towers", size: int) -> None:  # type: ignore[name-defined]
-        # The network gets the relative values for positions rather than absolute values. Seems to ease the work of the network
-
-        # Solve relative positions of towers
-        lower_relative_tower_position = (
-            tower.lower_boundary - self.height
-        ) / size * 2 - 1
-        upper_relative_tower_position = (
-            tower.lower_boundary - tower.hole_between_towers
-        ) / size * 2 - 1
-
-        # Solve relative position of bat
+    def move_bat(self, tower: "Towers", next_tower: "Towers", size: int) -> None:  # type: ignore[name-defined]
         relative_bat_location = self.y / size * 2 - 1
+        lower_relative = (tower.lower_boundary - self.height) / size * 2 - 1
+        upper_relative = (tower.lower_boundary - tower.hole_between_towers) / size * 2 - 1
+        lower_next = (next_tower.lower_boundary - self.height) / size * 2 - 1
+        upper_next = (next_tower.lower_boundary - next_tower.hole_between_towers) / size * 2 - 1
 
-        # Give the network some values to solve. Values are tower positions, bat position, speed and acceleration * 10
         network_output = self.network.return_network_solution(
             [
                 relative_bat_location,
-                lower_relative_tower_position,
-                upper_relative_tower_position,
+                lower_relative,
+                upper_relative,
                 self.speed,
                 self.acceleration * 10,
+                lower_next,
+                upper_next,
             ]
         )
 

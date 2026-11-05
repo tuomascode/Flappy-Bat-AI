@@ -12,7 +12,7 @@ from flappy_bat.constants import STAGNATION_LIMIT, POPULATION_SIZE
 
 def _fresh_bats(count: int, seed: int = 42) -> list[Bat]:
     random.seed(seed)
-    nets = Evolution().create_new_networks(5, 1, number_of_networks=count)
+    nets = Evolution().create_new_networks(7, 1, number_of_networks=count)
     return [Bat(n) for n in nets]
 
 
@@ -77,7 +77,7 @@ class TestRunSimulation:
         # run_simulation seeds to 1 internally, so identical networks
         # always produce identical scores regardless of external random state
         random.seed(99)
-        nets = Evolution().create_new_networks(5, 1, number_of_networks=4)
+        nets = Evolution().create_new_networks(7, 1, number_of_networks=4)
         scores_a = [
             s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
         ]
@@ -86,7 +86,7 @@ class TestRunSimulation:
 
     def test_generation_does_not_affect_scores(self):
         random.seed(77)
-        nets = Evolution().create_new_networks(5, 1, number_of_networks=3)
+        nets = Evolution().create_new_networks(7, 1, number_of_networks=3)
         scores_1 = [
             s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
         ]
@@ -97,7 +97,7 @@ class TestRunSimulation:
 
     def test_best_score_param_does_not_affect_scores(self):
         random.seed(55)
-        nets = Evolution().create_new_networks(5, 1, number_of_networks=3)
+        nets = Evolution().create_new_networks(7, 1, number_of_networks=3)
         scores_low = [
             s for _, s in run_simulation([Bat(n) for n in nets], 0, 1, display=False)
         ]

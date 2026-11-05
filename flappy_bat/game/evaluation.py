@@ -12,7 +12,7 @@ def _make_inputs(bat_y: float, speed: float, accel: float = 0.0) -> list[float]:
     relative_bat = bat_y / SCREEN_HEIGHT * 2 - 1
     lower_rel = (_LOWER_BOUNDARY - _BAT_HEIGHT) / SCREEN_HEIGHT * 2 - 1
     upper_rel = (_LOWER_BOUNDARY - _HOLE) / SCREEN_HEIGHT * 2 - 1
-    return [relative_bat, lower_rel, upper_rel, speed, accel * 10]
+    return [relative_bat, lower_rel, upper_rel, speed, accel * 10, lower_rel, upper_rel]
 
 
 def quick_score(network: Network) -> bool:

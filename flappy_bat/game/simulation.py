@@ -1,4 +1,6 @@
 from random import seed
+import datetime
+import subprocess
 
 import pygame
 
@@ -18,6 +20,44 @@ from flappy_bat.game.evaluation import quick_score
 
 _ADAPTIVE_HIGH_BATS = 8    # above this: uncapped speed
 _SLOW_TICKRATE = 90
+_RECORD_FPS = 60
+
+
+def _start_recorder(screen: pygame.Surface) -> subprocess.Popen | None:
+    w, h = screen.get_size()
+    filename = f"recording_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+    try:
+        proc = subprocess.Popen(
+            [
+                "ffmpeg", "-y",
+                "-f", "rawvideo", "-vcodec", "rawvideo",
+                "-s", f"{w}x{h}", "-pix_fmt", "rgb24",
+                "-r", str(_RECORD_FPS),
+                "-i", "-",
+                "-vcodec", "libx264", "-pix_fmt", "yuv420p", "-crf", "23",
+                filename,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        print(f"Recording → {filename}")
+        return proc
+    except FileNotFoundError:
+        print("ffmpeg not found — recording unavailable")
+        return None
+
+
+def _write_frame(recorder: subprocess.Popen, screen: pygame.Surface) -> None:
+    assert recorder.stdin is not None
+    recorder.stdin.write(pygame.surfarray.array3d(screen).swapaxes(0, 1).tobytes())
+
+
+def _stop_recorder(recorder: subprocess.Popen) -> None:
+    assert recorder.stdin is not None
+    recorder.stdin.close()
+    recorder.wait()
+    print("Recording saved")
 
 
 def _compute_round_stats(removed_bats: list[tuple]) -> list[tuple[str, str]]:
@@ -57,7 +97,8 @@ def run_simulation(
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     tickrate = 0
-    adaptive = True
+    adaptive = False
+    recorder: subprocess.Popen | None = None
 
     # Define towers and adjust the positions for the start
     towers = [Towers(SCREEN_WIDTH, SCREEN_HEIGHT, reducer) for _ in range(3)]
@@ -94,6 +135,12 @@ def run_simulation(
                     tickrate = 0
                 if event.key == pygame.K_c:
                     adaptive = True
+                if event.key == pygame.K_r:
+                    if recorder is None:
+                        recorder = _start_recorder(screen)
+                    else:
+                        _stop_recorder(recorder)
+                        recorder = None
 
         reducer += 1
         bat_remover_helper_list = []
@@ -102,8 +149,11 @@ def run_simulation(
         if len(bats_to_run) == 0:
             if display:
                 end_stats = _compute_round_stats(removed_bats)
-                _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=end_stats)
+                _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=end_stats, recording=recorder is not None)
                 pygame.display.flip()
+                if recorder is not None:
+                    _write_frame(recorder, screen)
+                    _stop_recorder(recorder)
             return removed_bats
 
 
@@ -120,7 +170,7 @@ def run_simulation(
 
         # Move each bat and collect any that hit something
         for bat in bats_to_run:
-            bat.move_bat(towers[0], SCREEN_HEIGHT)
+            bat.move_bat(towers[0], towers[1], SCREEN_HEIGHT)
             if bat.check_impact(towers[0], SCREEN_HEIGHT):
                 if bat not in bat_remover_helper_list:
                     bat_remover_helper_list.append(bat)
@@ -147,8 +197,10 @@ def run_simulation(
                     tickrate = _SLOW_TICKRATE
             if tracked_bat not in bats_to_run:
                 tracked_bat = bats_to_run[0] if bats_to_run else None
-            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats)
+            _draw_frame(screen, towers, bats_to_run, best_score, generation, score, tracked_bat, tickrate, end_stats=prev_round_stats, recording=recorder is not None)
             pygame.display.flip()
+            if recorder is not None:
+                _write_frame(recorder, screen)
             clock.tick(tickrate)
 
 
@@ -158,7 +210,7 @@ def _initial_bat_list(n: int) -> list[Bat]:
     tested = 0
     last_logged = 0
     while len(bats) < n:
-        network = Network(5, 1, [])
+        network = Network(7, 1, [])
         tested += 1
         if quick_score(network):
             bats.append(Bat(network))

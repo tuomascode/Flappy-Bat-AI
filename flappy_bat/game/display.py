@@ -27,6 +27,16 @@ _NEUTRAL_COLOUR = (180, 180, 180)
 
 _TEXT = "text"
 _END_HEADER_COLOUR = (200, 200, 255)
+_REC_COLOUR = (220, 50, 50)
+_REC_DOT_R = 6
+_REC_X = 14
+_REC_Y = 14
+
+
+def _draw_rec_indicator(screen: pygame.Surface) -> None:
+    pygame.draw.circle(screen, _REC_COLOUR, (_REC_X, _REC_Y), _REC_DOT_R)
+    font = pygame.font.SysFont("Arial", 15, bold=True)
+    screen.blit(font.render("REC", True, _REC_COLOUR), (_REC_X + _REC_DOT_R + 4, _REC_Y - 7))
 
 
 def _draw_end_panel(
@@ -105,6 +115,7 @@ def _draw_frame(
     featured_bat: object | None = None,
     tickrate: int = 0,
     end_stats: list[tuple[str, str]] | None = None,
+    recording: bool = False,
 ) -> None:
     screen.fill((100, 100, 100))
 
@@ -153,3 +164,5 @@ def _draw_frame(
 
     if end_stats is not None:
         _draw_end_panel(screen, end_stats)
+    if recording:
+        _draw_rec_indicator(screen)
