@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random as r
 
+import numpy as np
+
 from flappy_bat.network.node import Node
 
 _WEIGHT_INIT_RANGE = (-1.0, 1.0)  # initial connection weights
@@ -14,17 +16,16 @@ class Network:
     # The class also provides with basic checking functions that ensure, that mutation functions don't break the networks.
     # Write and read functions are also provided to save the network. Not sure why anyone would do this but here we are.
     def __init__(
-        self, input_nodes: int, output_nodes: int, table: list[list[float | None]]
+        self, input_nodes: int, output_nodes: int, table: list | np.ndarray
     ) -> None:
         if len(table) == 0:
             self.number_of_nodes = input_nodes + output_nodes
             self.levels: list[int] = []
-            self.begins = [i for i in range(input_nodes)]
+            self.begins = list(range(input_nodes))
             self.ends = [i + input_nodes for i in range(output_nodes)]
-            self.network_table = [
-                [None for j in range(self.number_of_nodes)]
-                for i in range(self.number_of_nodes)
-            ]
+            self.network_table = np.full(
+                (self.number_of_nodes, self.number_of_nodes), np.nan
+            )
             for i in self.begins:
                 for j in self.ends:
                     self.network_table[i][j] = r.uniform(*_WEIGHT_INIT_RANGE)
@@ -36,21 +37,17 @@ class Network:
         else:
             self.id = r.randint(0, 999999999)
             self.number_of_nodes = len(table)
-            self.begins = [i for i in range(input_nodes)]
+            self.begins = list(range(input_nodes))
             self.levels = []
             if self.number_of_nodes != input_nodes + output_nodes:
                 for i in range(input_nodes, len(table) - output_nodes):
                     self.levels.append(i)
-            self.primitive = False
-            if len(self.levels) == 0:
-                self.primitive = True
-            self.ends = [
-                value
-                for value in range(
-                    len(self.begins) + len(self.levels), self.number_of_nodes
-                )
-            ]
-            self.network_table = table
+            self.primitive = len(self.levels) == 0
+            self.ends = list(
+                range(len(self.begins) + len(self.levels), self.number_of_nodes)
+            )
+            # np.array copies if table is already ndarray; converts None → nan if list
+            self.network_table = np.array(table, dtype=float)
             self._rebuild_node_graph()
 
     def _rebuild_node_graph(self) -> None:
@@ -63,36 +60,28 @@ class Network:
             self.nodes.append(Node(i, self.network_table[i][i]))
         for i in range(len(self.network_table) - 1, -1, -1):
             for j in range(i - 1, -1, -1):
-                if self.network_table[j][i] is not None:
+                if not np.isnan(self.network_table[j][i]):
                     self.nodes[i].append_neighbour(
                         self.nodes[j], self.network_table[j][i]
                     )
 
-    def _copy_table(self) -> list[list[float | None]]:
-        return [list(row) for row in self.network_table]
+    def _copy_table(self) -> np.ndarray:
+        return self.network_table.copy()
 
-    def _expand_table(self, at: int) -> list[list[float | None]]:
+    def _expand_table(self, at: int) -> np.ndarray:
         """Return a copy of network_table with a blank row and column inserted at `at`."""
         n = len(self.network_table)
-        new_table: list[list[float | None]] = [[None] * (n + 1) for _ in range(n + 1)]
-        for i in range(n):
-            for j in range(n):
-                if self.network_table[i][j] is not None:
-                    ni = i + 1 if i >= at else i
-                    nj = j + 1 if j >= at else j
-                    new_table[ni][nj] = self.network_table[i][j]
+        new_table = np.full((n + 1, n + 1), np.nan)
+        idx = np.arange(n)
+        shifted = np.where(idx >= at, idx + 1, idx)
+        new_table[np.ix_(shifted, shifted)] = self.network_table
         return new_table
 
-    def _compact_table(self, at: int) -> list[list[float | None]]:
+    def _compact_table(self, at: int) -> np.ndarray:
         """Return a copy of network_table with row and column `at` removed."""
         n = len(self.network_table)
-        new_table: list[list[float | None]] = [[None] * (n - 1) for _ in range(n - 1)]
-        for i in range(n - 1):
-            for j in range(n - 1):
-                si = i + 1 if i >= at else i
-                sj = j + 1 if j >= at else j
-                new_table[i][j] = self.network_table[si][sj]
-        return new_table
+        idx = np.concatenate([np.arange(at), np.arange(at + 1, n)])
+        return self.network_table[np.ix_(idx, idx)].copy()
 
     def _wire_node_primitive(
         self, rv: int, lower_bound: float, upper_bound: float
@@ -102,7 +91,7 @@ class Network:
         second_node = r.choice(self.nodes[node - 1].back_neighbours).index
         self.network_table[rv][node] = self.network_table[second_node][node]
         self.network_table[second_node][rv] = 1
-        self.network_table[second_node][node] = None
+        self.network_table[second_node][node] = np.nan
         self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
 
     def _wire_node_complex(
@@ -112,7 +101,7 @@ class Network:
         while True:
             node = r.randint(rv + 1, self.ends[-1])
             candidate_sources = [
-                i for i in range(rv) if self.network_table[i][node] is not None
+                i for i in range(rv) if not np.isnan(self.network_table[i][node])
             ]
             try:
                 second_node = r.choice(candidate_sources)
@@ -122,33 +111,30 @@ class Network:
         self.network_table[rv][rv] = r.uniform(lower_bound, upper_bound)
         self.network_table[rv][node] = self.network_table[second_node][node]
         self.network_table[second_node][rv] = 1
-        self.network_table[second_node][node] = None
+        self.network_table[second_node][node] = np.nan
 
     def _find_node_neighbors(self, node: int) -> tuple[list[int], list[int]]:
         """Return (upstream, downstream) neighbor indices for `node`.
 
         upstream:   indices of nodes that have a connection pointing TO `node`
-        downstream: indices of nodes that `node` points TO
+        downstream: indices of nodes that `node` connects TO
         """
         upstream: list[int] = []
         downstream: list[int] = []
         n = len(self.network_table)
         for i in range(n):
             for j in range(n):
-                if j == node and j != i and self.network_table[j][i] is not None:
+                if j == node and j != i and not np.isnan(self.network_table[j][i]):
                     downstream.append(i)
-                if i == node and j != i and self.network_table[j][i] is not None:
+                if i == node and j != i and not np.isnan(self.network_table[j][i]):
                     upstream.append(j)
         return upstream, downstream
 
     def calculate_complexity(self) -> int:
-        sum = 0
-        sum += self.number_of_nodes
-        for i in range(len(self.network_table) - 1):
-            for j in range(i + 1, len(self.network_table)):
-                if self.network_table[i][j] is not None:
-                    sum += 1
-        return sum
+        n = len(self.network_table)
+        i_idx, j_idx = np.triu_indices(n, k=1)
+        connections = int(np.sum(~np.isnan(self.network_table[i_idx, j_idx])))
+        return self.number_of_nodes + connections
 
     def return_network_solution(self, input: list[float]) -> list[float]:
         solutions = []
@@ -167,9 +153,8 @@ class Network:
                 new_table[i][j] = (
                     self.network_table[node][j] + self.network_table[i][node]
                 ) / 2
-        for i in range(len(new_table)):
-            new_table[node][i] = None
-            new_table[i][node] = None
+        new_table[node, :] = np.nan
+        new_table[:, node] = np.nan
         self.network_table = new_table
         self.network_table = self._compact_table(node)
         self.levels = self.levels[:-1]
@@ -218,7 +203,7 @@ class Network:
             for i in range(self.levels[0], len(self.network_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] is None:
+                if np.isnan(self.network_table[j][i]):
                     sum += 1
         if sum == 0:
             return
@@ -229,7 +214,7 @@ class Network:
             for i in range(self.levels[0], len(new_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] is None:
+                if np.isnan(self.network_table[j][i]):
                     if index == connection:
                         new_table[j][i] = r.uniform(lower_bound, upper_bound)
                         self.network_table = new_table
@@ -246,7 +231,7 @@ class Network:
             for i in range(self.levels[0], len(self.network_table)):
                 if j >= i:
                     continue
-                if self.network_table[j][i] is None:
+                if np.isnan(self.network_table[j][i]):
                     return True
         return False
 
@@ -256,7 +241,7 @@ class Network:
             for j in range(i + 1, len(self.network_table)):
                 if j <= self.begins[-1]:
                     continue
-                if self.network_table[i][j] is not None:
+                if not np.isnan(self.network_table[i][j]):
                     connections += 1
             if connections >= 2:
                 return True
@@ -271,13 +256,13 @@ class Network:
             for j in range(i + 1, len(self.network_table)):
                 if j <= self.begins[-1]:
                     continue
-                if self.network_table[i][j] is not None:
+                if not np.isnan(self.network_table[i][j]):
                     connections.append((i, j))
             for i in connections:
                 removals.append(i)
         removal = r.choice(removals)
         new_table = self._copy_table()
-        new_table[removal[0]][removal[1]] = None
+        new_table[removal[0]][removal[1]] = np.nan
         self.network_table = new_table
         self._rebuild_node_graph()
 
@@ -286,11 +271,12 @@ class Network:
         lower_bound = 1 - variability
         upper_bound = 1 + variability
         new_table = self._copy_table()
-        for index, row in enumerate(new_table):
-            for jindex, value in enumerate(row):
-                if value is not None:
-                    if r.randint(1, 10) <= rate:
-                        new_table[index][jindex] *= r.uniform(lower_bound, upper_bound)
+        n = len(new_table)
+        present = ~np.isnan(new_table)
+        flip = np.random.randint(1, 11, size=(n, n)) <= rate
+        mask = present & flip
+        multipliers = np.random.uniform(lower_bound, upper_bound, size=(n, n))
+        new_table[mask] *= multipliers[mask]
         self.network_table = new_table
         self._rebuild_node_graph()
 
@@ -313,33 +299,23 @@ class Network:
 
     def write(self, filename: str) -> None:
         with open(filename, "w") as file:
-            for i in self.network_table:
-                write_string = ""
-                for j in i:
-                    write_string += str(j)
-                    write_string += ";"
-                write_string = write_string[:-1]
-                write_string += "\n"
-                file.write(write_string)
-            file.write((str(len(self.begins)) + "\n"))
+            for row in self.network_table:
+                parts = ["None" if np.isnan(v) else str(v) for v in row]
+                file.write(";".join(parts) + "\n")
+            file.write(str(len(self.begins)) + "\n")
             file.write(str(len(self.ends)))
 
     @staticmethod
     def read_and_return(filename: str) -> Network:
-        network_list = []
-        index = 0
         with open(filename) as file:
-            for i in file:
-                network_list.append([])
-                i = i.split(";")
-                for k in i:
-                    k = k.replace("\n", "")
-                    if k == "None":
-                        network_list[index].append(None)
-                    else:
-                        network_list[index].append(float(k))
-
-                index += 1
-        input_nodes = int(network_list[-2][0])
-        output_nodes = int(network_list[-1][0])
-        return Network(input_nodes, output_nodes, network_list[:-2])
+            lines = file.readlines()
+        input_nodes = int(lines[-2].strip())
+        output_nodes = int(lines[-1].strip())
+        rows = []
+        for line in lines[:-2]:
+            row = [
+                np.nan if k.strip() == "None" else float(k.strip())
+                for k in line.split(";")
+            ]
+            rows.append(row)
+        return Network(input_nodes, output_nodes, np.array(rows, dtype=float))

@@ -67,7 +67,7 @@ Flappy-Bat-AI/
 
 ### Critical invariants (do not break these)
 
-- Network table is a `list[list[float | None]]`; `None` means no connection.
+- Network table is a `np.ndarray` (float64); `np.nan` means no connection.
 - `solve_network_output()` is recursive with `tanh`; do not replace with iterative.
 - Game uses `seed(1)` for the obstacle course; keep this fixed.
 - Bat controls **acceleration**, not position or velocity directly.
@@ -112,13 +112,13 @@ Source: `flappy_bat` package
 |------|-------|------|-------|-------------------|
 | flappy_bat/constants.py | 15 | 0 | **100%** | |
 | flappy_bat/network/node.py | 22 | 2 | **91%** | `solve_network_output` error branch |
-| flappy_bat/network/network.py | 301 | 27 | **91%** | `create_new_node` complexity paths; mutation branches |
-| flappy_bat/network/evolution.py | 65 | 14 | **78%** | `evolve_networks` growth/shrink branches |
+| flappy_bat/network/network.py | 252 | 3 | **99%** | `IndexError` retry path; unreachable fallthrough |
+| flappy_bat/network/evolution.py | 65 | 17 | **74%** | `evolve_networks` growth/shrink branches |
 | flappy_bat/game/bat.py | 45 | 9 | **80%** | `_load_images` |
 | flappy_bat/game/towers.py | 45 | 0 | **100%** | |
 | flappy_bat/game/display.py | 17 | 14 | **18%** | `_draw_frame` body (display path only) |
 | flappy_bat/game/simulation.py | 106 | 41 | **61%** | `main()` loop; keyboard/display-only paths |
-| **Total** | **619** | **107** | **83%** | |
+| **Total** | **570** | **86** | **85%** | |
 
 `display.py` and `main()` in simulation.py are intentionally untested — they require a real display or a full end-to-end run.
 
@@ -192,3 +192,6 @@ Lives entirely in `display.py`. No game-logic changes required.
 | 2026-11-05 | Phase 7: Restructured flat layout into `flappy_bat` package (network/, game/); split NEMT.py and main.py; moved assets/; split tests into network/ and game/ subdirs; 95 tests pass. |
 | 2026-11-05 | Phase 8: Clean code — renamed `_rebuild_node_graph`, fixed shadow var in `mutate_network`, fixed bare except, deleted dead `mutatibility`, added `evolve_networks` docstring, `False`→`None` sentinel, extracted `_reset_search()`; 102 tests pass, 74% coverage. |
 | 2026-11-05 | Phase 9: Integration tests for `run_simulation` (8 tests: return shape, all bats scored, input list emptied, determinism, param independence); 110 tests pass, 83% coverage. |
+| 2026-11-05 | Phase 10: Extract `_copy_table`, `_expand_table`, `_compact_table` helpers; remove dead sign-flip code; `is None` → `is not None` throughout; 5 new tests; 115 pass. |
+| 2026-11-05 | Phase 11: Extract `_wire_node_primitive`, `_wire_node_complex`, `_find_node_neighbors`; collapse mutability if/elif to lookup table; 3 new tests; 118 pass. |
+| 2026-11-05 | Phase 12: Added numpy dependency; replaced `list[list[float\|None]]` with `np.ndarray` (nan = absent); vectorised `calculate_complexity`, `mutate_network`, `_expand_table`, `_compact_table`; updated critical invariant; 11 new tests; 126 pass, network.py 99%, total 85%. |

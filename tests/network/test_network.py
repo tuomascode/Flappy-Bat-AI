@@ -2,6 +2,8 @@ import pytest
 from math import tanh
 import random
 
+import numpy as np
+
 from flappy_bat.network.node import Node
 from flappy_bat.network.network import Network
 from flappy_bat.network.evolution import Evolution
@@ -235,8 +237,8 @@ class TestNetwork:
     def test_expand_table_new_row_col_blank(self):
         net = Network(3, 1, [])
         expanded = net._expand_table(2)
-        assert all(expanded[2][j] is None for j in range(len(expanded)))
-        assert all(expanded[i][2] is None for i in range(len(expanded)))
+        assert np.all(np.isnan(expanded[2]))
+        assert np.all(np.isnan(expanded[:, 2]))
 
     def test_compact_table_decreases_size(self):
         net = Network(3, 1, [])
@@ -297,17 +299,76 @@ class TestNetwork:
     def test_mutate_network_preserves_none_positions(self):
         random.seed(7)
         net = Network(3, 1, [])
-        none_before = {
-            (i, j)
-            for i, row in enumerate(net.network_table)
-            for j, v in enumerate(row)
-            if v is None
-        }
+        nan_before = np.isnan(net.network_table).copy()
         net.mutate_network(3)
-        none_after = {
-            (i, j)
-            for i, row in enumerate(net.network_table)
-            for j, v in enumerate(row)
-            if v is None
-        }
-        assert none_before == none_after
+        assert np.array_equal(nan_before, np.isnan(net.network_table))
+
+    # --- Phase 12: numpy integration tests ---
+
+    def test_network_table_is_ndarray(self):
+        net = Network(3, 1, [])
+        assert isinstance(net.network_table, np.ndarray)
+
+    def test_nan_means_no_connection(self):
+        net = Network(3, 1, [])
+        # Diagonal entries for input nodes should be nan (no self-bias)
+        for i in net.begins:
+            assert np.isnan(net.network_table[i][i])
+        # begin→end connections should be valid floats
+        for i in net.begins:
+            for j in net.ends:
+                assert not np.isnan(net.network_table[i][j])
+
+    def test_calculate_complexity_matches_manual_count(self):
+        random.seed(1)
+        net = Network(3, 1, [])
+        n = net.number_of_nodes
+        manual = n + sum(
+            1
+            for i in range(n - 1)
+            for j in range(i + 1, n)
+            if not np.isnan(net.network_table[i][j])
+        )
+        assert net.calculate_complexity() == manual
+
+    def test_check_connection_true_with_levels(self):
+        net = Network(3, 1, [])
+        net.create_new_node()
+        # With 3 inputs and 1 hidden node only one input→hidden wired; others are nan
+        assert net.check_connection() is True
+
+    def test_check_for_connection_removal_true_after_extra_connection(self):
+        random.seed(1)
+        net = Network(3, 1, [])
+        net.create_new_node()
+        net.create_new_connection()
+        assert net.check_for_connection_removal() is True
+
+    def test_remove_connection_decreases_connection_count(self):
+        random.seed(1)
+        net = Network(3, 1, [])
+        net.create_new_node()
+        net.create_new_connection()
+        connections_before = net.calculate_complexity() - net.number_of_nodes
+        net.remove_connection()
+        connections_after = net.calculate_complexity() - net.number_of_nodes
+        assert connections_after == connections_before - 1
+
+    def test_create_new_connection_no_op_when_fully_connected(self):
+        random.seed(1)
+        net = Network(2, 1, [])
+        net.create_new_node()
+        for _ in range(5):
+            net.create_new_connection()
+        complexity_before = net.calculate_complexity()
+        net.create_new_connection()
+        assert net.calculate_complexity() == complexity_before
+        assert net.check_connection() is False
+
+    def test_mutate_network_nan_positions_unchanged(self):
+        random.seed(5)
+        net = Network(3, 1, [])
+        net.create_new_node()
+        nan_before = np.isnan(net.network_table).copy()
+        net.mutate_network(5)
+        assert np.array_equal(nan_before, np.isnan(net.network_table))
