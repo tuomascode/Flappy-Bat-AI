@@ -7,5 +7,6 @@ if __name__ == "__main__":
     parser.add_argument("--save", metavar="PATH", default=None, help="Save best network to PATH on each new high score")
     parser.add_argument("--load", metavar="PATH", default=None, help="Load network from PATH and skip initial search")
     parser.add_argument("--record", action="store_true", help="Automatically record every round")
+    parser.add_argument("--record-rounds", metavar="N", type=int, default=None, help="Record first N rounds into one video (requires --record)")
     args = parser.parse_args()
-    main(save_path=args.save, load_path=args.load, auto_record=args.record)
+    main(save_path=args.save, load_path=args.load, auto_record=args.record, record_rounds=args.record_rounds)
